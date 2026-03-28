@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
+import { getSaleLineItems } from "@/lib/sales"
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from "recharts"
@@ -59,16 +60,18 @@ export function ProductMixChart() {
     const itemMap = new Map<string, { name: string; units: number; revenue: number }>()
 
     for (const sale of sales) {
-      const existing = itemMap.get(sale.itemId)
-      if (existing) {
-        existing.units += sale.qty
-        existing.revenue += sale.total
-      } else {
-        itemMap.set(sale.itemId, {
-          name: sale.itemName,
-          units: sale.qty,
-          revenue: sale.total,
-        })
+      for (const lineItem of getSaleLineItems(sale)) {
+        const existing = itemMap.get(lineItem.itemId)
+        if (existing) {
+          existing.units += lineItem.qty
+          existing.revenue += lineItem.total
+        } else {
+          itemMap.set(lineItem.itemId, {
+            name: lineItem.itemName,
+            units: lineItem.qty,
+            revenue: lineItem.total,
+          })
+        }
       }
     }
 

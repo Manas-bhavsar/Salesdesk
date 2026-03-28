@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
+import { getSaleExpensesTotal, getSaleItemsSummary, getSaleTotalUnits, getSaleVariantSummary } from "@/lib/sales"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EditSaleModal } from "@/components/sales/EditSaleModal"
@@ -110,10 +111,11 @@ export function RecentSalesTable() {
             <thead>
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface/60 border-b border-border/40">
                 <th className="px-5 py-3.5 font-medium">Date</th>
-                <th className="px-5 py-3.5 font-medium">Item</th>
+                <th className="px-5 py-3.5 font-medium">Items</th>
                 <th className="px-5 py-3.5 font-medium">Variant</th>
                 <th className="px-5 py-3.5 font-medium text-right">Qty</th>
                 <th className="px-5 py-3.5 font-medium text-right">Revenue</th>
+                <th className="px-5 py-3.5 font-medium text-right">Expenses</th>
                 <th className="px-5 py-3.5 font-medium text-right">Profit</th>
                 <th className="px-5 py-3.5 font-medium">Payment</th>
                 <th className="px-5 py-3.5 font-medium">Customer</th>
@@ -131,18 +133,19 @@ export function RecentSalesTable() {
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {format(new Date(sale.date + 'T12:00:00'), 'MMM d, yyyy')}
                   </td>
-                  <td className="px-5 py-3.5 font-medium">{sale.itemName}</td>
+                  <td className="px-5 py-3.5 font-medium">{getSaleItemsSummary(sale)}</td>
                   <td className="px-5 py-3.5">
-                    {sale.variant ? (
+                    {getSaleVariantSummary(sale) ? (
                       <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/15 font-normal text-[11px]">
-                        {sale.variant}
+                        {getSaleVariantSummary(sale)}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">{sale.qty}</td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">{getSaleTotalUnits(sale)}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(sale.total, currency)}</td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(getSaleExpensesTotal(sale), currency)}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
                     <span className={sale.profit > 0 ? "text-profit" : sale.profit < 0 ? "text-loss" : ""}>
                       {formatCurrency(sale.profit, currency)}

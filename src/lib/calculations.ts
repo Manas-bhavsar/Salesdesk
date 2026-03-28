@@ -1,4 +1,5 @@
 import { Item, Sale, ItemBreakdown } from "@/types";
+import { getSaleLineItems } from "@/lib/sales";
 
 export function calcTotal(sellPrice: number, qty: number): number {
   return sellPrice * qty;
@@ -13,26 +14,28 @@ export function calcMargin(profit: number, revenue: number): number {
   return (profit / revenue) * 100;
 }
 
-export function getItemBreakdowns(items: Item[], sales: Sale[]): ItemBreakdown[] {
+export function getItemBreakdowns(_items: Item[], sales: Sale[]): ItemBreakdown[] {
   const breakdownMap = new Map<string, ItemBreakdown>();
 
   for (const sale of sales) {
-    if (!breakdownMap.has(sale.itemId)) {
-      breakdownMap.set(sale.itemId, {
-        itemId: sale.itemId,
-        itemName: sale.itemName,
-        category: sale.category,
-        unitsSold: 0,
-        revenue: 0,
-        profit: 0,
-        margin: 0,
-      });
-    }
+    for (const lineItem of getSaleLineItems(sale)) {
+      if (!breakdownMap.has(lineItem.itemId)) {
+        breakdownMap.set(lineItem.itemId, {
+          itemId: lineItem.itemId,
+          itemName: lineItem.itemName,
+          category: lineItem.category,
+          unitsSold: 0,
+          revenue: 0,
+          profit: 0,
+          margin: 0,
+        });
+      }
 
-    const bd = breakdownMap.get(sale.itemId)!;
-    bd.unitsSold += sale.qty;
-    bd.revenue += sale.total;
-    bd.profit += sale.profit;
+      const bd = breakdownMap.get(lineItem.itemId)!;
+      bd.unitsSold += lineItem.qty;
+      bd.revenue += lineItem.total;
+      bd.profit += lineItem.profit;
+    }
   }
 
   const result = Array.from(breakdownMap.values()).map(bd => {

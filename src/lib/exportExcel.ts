@@ -1,6 +1,7 @@
 import * as xlsx from "xlsx"
 import { Item, Sale } from "@/types"
 import { format } from "date-fns"
+import { getSaleExpenses, getSaleExpensesTotal, getSaleItemsSummary, getSaleLineItems, getSaleTotalUnits, getSaleVariantSummary } from "@/lib/sales"
 
 export function exportItemsCatalog(items: Item[], currency: string): void {
   void currency
@@ -60,15 +61,17 @@ export function exportItemsCatalog(items: Item[], currency: string): void {
 export function exportSalesData(sales: Sale[], currency: string): void {
   void currency
   let data = sales.map(sale => {
+    const expenses = getSaleExpenses(sale)
     return {
       "Date": sale.date,
-      "Item Name": sale.itemName,
-      "Category": sale.category,
-      "Variant": sale.variant || "",
-      "Qty": sale.qty,
-      "Sell Price": sale.sellPrice,
-      "Cost Price": sale.costPrice,
+      "Items": getSaleItemsSummary(sale),
+      "Categories": Array.from(new Set(getSaleLineItems(sale).map(line => line.category))).join(" | "),
+      "Variant": getSaleVariantSummary(sale) || "",
+      "Qty": getSaleTotalUnits(sale),
+      "Line Items": getSaleLineItems(sale).map(line => `${line.itemName}${line.variant ? ` (${line.variant})` : ""} x${line.qty}`).join(" | "),
       "Revenue": sale.total,
+      "Extra Expenses": getSaleExpensesTotal(sale),
+      "Expense Details": expenses.map(expense => `${expense.label}: ${expense.amount}`).join(" | "),
       "Profit": sale.profit,
       "Payment Status": sale.paymentStatus || "paid",
       "Amount Due": sale.amountDue || 0,
@@ -97,13 +100,14 @@ export function exportSalesData(sales: Sale[], currency: string): void {
     const currentKeys = Object.keys(data[0])
     const defaultWidths: Record<string, number> = {
       "Date": 12,
-      "Item Name": 25,
-      "Category": 15,
+      "Items": 25,
+      "Categories": 18,
       "Variant": 15,
       "Qty": 8,
-      "Sell Price": 12,
-      "Cost Price": 12,
+      "Line Items": 42,
       "Revenue": 12,
+      "Extra Expenses": 14,
+      "Expense Details": 30,
       "Profit": 12,
       "Payment Status": 14,
       "Amount Due": 12,
