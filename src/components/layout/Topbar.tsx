@@ -1,16 +1,22 @@
+import { useRef } from "react"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { useItemsStore } from "@/store/useItemsStore"
 import { useSalesStore } from "@/store/useSalesStore"
 import { clearAllData } from "@/lib/localStorage"
+import { downloadBackup, parseBackupFileContent, restoreBackupData } from "@/lib/backup"
+import { useToast } from "@/components/ui/Toast"
 import type { TabType } from "./AppShell"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { RotateCcw, LayoutDashboard, Tags, Sparkles } from "lucide-react"
+import { RotateCcw, LayoutDashboard, Tags, Sparkles, Download, Upload } from "lucide-react"
 
 export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabChange: (t: TabType) => void }) {
   const { config, resetStore } = useStoreConfig()
+  const setConfig = useStoreConfig(state => state.setConfig)
   const setItems = useItemsStore(state => state.setItems)
   const setSales = useSalesStore(state => state.setSales)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   const handleReset = () => {
     clearAllData()
@@ -20,9 +26,39 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
     window.location.reload()
   }
 
+  const handleBackup = () => {
+    downloadBackup()
+    toast("Backup downloaded successfully")
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    try {
+      const content = await file.text()
+      const backup = parseBackupFileContent(content)
+
+      restoreBackupData(backup)
+      setConfig(backup.storeConfig)
+      setItems(backup.items)
+      setSales(backup.sales)
+      toast("Backup imported successfully")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to import backup"
+      toast(message, "error")
+    } finally {
+      event.target.value = ""
+    }
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 h-[56px] border-b border-border/40 bg-background/80 backdrop-blur-xl z-40 flex items-center px-5 justify-between">
-      {/* Brand */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shadow-primary/20">
@@ -37,14 +73,13 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
         </div>
       </div>
 
-      {/* Navigation tabs */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
         <div className="flex gap-1 bg-surface/80 border border-border/40 rounded-xl p-1">
           <button
             onClick={() => onTabChange("dashboard")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === "dashboard" 
-                ? "bg-primary/15 text-primary shadow-sm" 
+              activeTab === "dashboard"
+                ? "bg-primary/15 text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
             }`}
           >
@@ -54,8 +89,8 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
           <button
             onClick={() => onTabChange("catalog")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === "catalog" 
-                ? "bg-primary/15 text-primary shadow-sm" 
+              activeTab === "catalog"
+                ? "bg-primary/15 text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
             }`}
           >
@@ -65,8 +100,22 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center">
+      <div className="flex items-center gap-1">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
+        <Button variant="ghost" size="sm" onClick={handleBackup} className="text-muted-foreground">
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Backup</span>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleImportClick} className="text-muted-foreground">
+          <Upload className="h-4 w-4" />
+          <span className="hidden sm:inline">Import</span>
+        </Button>
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">

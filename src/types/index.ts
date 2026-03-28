@@ -55,3 +55,11 @@ export type ItemBreakdown = {
   profit: number
   margin: number
 }
+
+export type AppBackup = {
+  version: 1
+  exportedAt: string
+  storeConfig: StoreConfig
+  items: Item[]
+  sales: Sale[]
+}

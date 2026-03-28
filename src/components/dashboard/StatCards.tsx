@@ -1,14 +1,12 @@
 import { useSalesStore } from "@/store/useSalesStore"
-import { useItemsStore } from "@/store/useItemsStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
-import { TrendingUp, IndianRupee, ShoppingBag, Package, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react"
+import { TrendingUp, IndianRupee, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react"
 
 export function StatCards() {
   const sales = useSalesStore(state => state.sales)
   const getTotalRevenue = useSalesStore(state => state.getTotalRevenue)
   const getTotalProfit = useSalesStore(state => state.getTotalProfit)
-  const items = useItemsStore(state => state.items)
   const currency = useStoreConfig(state => state.config.currency)
 
   const revenue = getTotalRevenue()

@@ -3,6 +3,7 @@ import { Item, Sale } from "@/types"
 import { format } from "date-fns"
 
 export function exportItemsCatalog(items: Item[], currency: string): void {
+  void currency
   let data = items.map(item => {
     return {
       "Item Name": item.name,
@@ -57,6 +58,7 @@ export function exportItemsCatalog(items: Item[], currency: string): void {
 }
 
 export function exportSalesData(sales: Sale[], currency: string): void {
+  void currency
   let data = sales.map(sale => {
     return {
       "Date": sale.date,

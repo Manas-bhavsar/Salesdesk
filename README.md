@@ -1,36 +1,164 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SalesDesk
+
+SalesDesk is a local-first sales tracking app built for small personal store operations. It helps manage a simple product catalog, record sales, track profit, monitor unpaid amounts, and export or restore data without needing a backend.
+
+This project was built as a practical side project for personal use, with an intentionally lightweight architecture: one app, one user, one device, fast setup.
+
+## Highlights
+
+- Guided first-run setup for store info and product categories
+- Catalog management with optional item variants
+- Sale recording with payment status support
+- Dashboard with revenue, profit, unpaid amount, and product performance
+- Excel export for catalog and sales data
+- Full JSON backup and import for the entire app state
+- Offline/local-first persistence with `localStorage`
+
+## Demo Scope
+
+SalesDesk is not intended to be a full SaaS or ERP system.
+
+It is designed for:
+
+- personal store tracking
+- offline-friendly daily use
+- quick data entry and basic reporting
+- easy recovery through backup/import
+
+It is not designed for:
+
+- multi-user collaboration
+- cloud sync
+- authentication and roles
+- advanced inventory management
+
+## Screens and Flow
+
+The current app flow is:
+
+1. Setup wizard
+2. Catalog creation
+3. Dashboard and sales tracking
+4. Export, backup, and import from the top bar
+
+Main areas:
+
+- `Setup Wizard`: store name, owner, currency, categories
+- `Catalog`: add, edit, delete items and variants
+- `Dashboard`: record sales, view charts, item performance, recent sales
+- `Backup / Import`: download or restore the complete project data
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Zustand
+- Tailwind CSS 4
+- Recharts
+- `xlsx`
+- Radix UI Dialog
+
+## Local-First Data Model
+
+All app data is stored in the browser using `localStorage`.
+
+Persisted data includes:
+
+- store configuration
+- catalog items
+- sales records
+
+Because of that:
+
+- data is tied to the current browser/device
+- clearing browser storage removes app data
+- backup export is the recommended recovery path
+
+## Backup and Import
+
+SalesDesk supports full-project backup and restore.
+
+### Backup
+
+Use the `Backup` action in the top bar to download a JSON file containing:
+
+- store configuration
+- all catalog items
+- all sales records
+
+### Import
+
+Use the `Import` action in the top bar to restore a previously exported backup file.
+
+Import replaces the current local data with the contents of the selected backup file.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Available Scripts
 
-## Learn More
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+src/
+  app/                 Next.js app entry and global styles
+  components/
+    catalog/           Catalog forms and item editing
+    dashboard/         Dashboard cards, charts, and tables
+    layout/            Top bar and app shell
+    sales/             Sale creation, editing, export filters
+    setup/             First-run setup wizard
+    ui/                Reusable UI primitives
+  lib/                 Calculations, export, local storage, backup
+  store/               Zustand stores
+  types/               Shared TypeScript types
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Why This Project Works Well as a Showcase
 
-## Deploy on Vercel
+- Clear product focus instead of generic CRUD
+- Strong single-user scope with intentional tradeoffs
+- Good UI polish for a personal utility app
+- Useful data features: charts, export, backup, restore
+- Clean frontend architecture without unnecessary backend complexity
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If you want to present it publicly, this is best framed as:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> A local-first sales and catalog tracker for personal store operations, focused on fast setup, simple reporting, and reliable offline data ownership.
+
+## Possible Future Improvements
+
+- import preview before restore
+- optional dashboard date filters
+- lightweight tests for calculations and stores
+- better README visuals with screenshots or GIFs
+- PWA install support
+
+## License
+
+This project currently has no explicit license. Add one before open public distribution.

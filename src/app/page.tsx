@@ -2,15 +2,15 @@
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { SetupWizard } from "@/components/setup/SetupWizard"
 import { AppShell } from "@/components/layout/AppShell"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+function subscribe() {
+  return () => {}
+}
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false)
   const setupComplete = useStoreConfig(state => state.config.setupComplete)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   if (!mounted) {
     return (
