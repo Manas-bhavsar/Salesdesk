@@ -87,7 +87,7 @@ export function CatalogManager() {
                 <th className="px-5 py-3.5 font-medium">Name</th>
                 <th className="px-5 py-3.5 font-medium">Category</th>
                 <th className="px-5 py-3.5 font-medium">SKU</th>
-                <th className="px-5 py-3.5 font-medium text-right">Sell Price</th>
+                <th className="px-5 py-3.5 font-medium text-right">Sale Price</th>
                 <th className="px-5 py-3.5 font-medium text-right">Cost Price</th>
                 <th className="px-5 py-3.5 font-medium text-center">Variants</th>
                 <th className="px-5 py-3.5 font-medium text-center w-24"></th>
@@ -124,7 +124,7 @@ export function CatalogManager() {
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground font-mono text-xs">{item.sku || "—"}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
-                    {item.hasVariants ? <span className="text-muted-foreground/40">—</span> : formatCurrency(item.sellPrice, currency)}
+                    <span className="text-muted-foreground/60 text-xs font-sans">Set on sale</span>
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
                     {item.hasVariants ? <span className="text-muted-foreground/40">—</span> : formatCurrency(item.costPrice, currency)}

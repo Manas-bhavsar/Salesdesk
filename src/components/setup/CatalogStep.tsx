@@ -59,7 +59,7 @@ export function CatalogStep({ onNext, onBack }: { onNext: () => void, onBack: ()
                     {item.hasVariants ? (
                       <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 font-mono border-blue-500/15 text-[11px]">{item.variants.length} variants</Badge>
                     ) : (
-                      <div className="font-mono text-sm">{formatCurrency(item.sellPrice, currency)}</div>
+                      <div className="font-mono text-sm">{formatCurrency(item.costPrice, currency)}</div>
                     )}
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all duration-200">

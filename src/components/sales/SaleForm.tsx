@@ -25,6 +25,7 @@ type LineItemDraft = {
   id: string
   itemId: string
   variantId: string
+  sellPrice: string
   qty: string
 }
 
@@ -39,6 +40,7 @@ function createEmptyLineItemDraft(): LineItemDraft {
     id: crypto.randomUUID(),
     itemId: "",
     variantId: "",
+    sellPrice: "",
     qty: "1",
   }
 }
@@ -77,6 +79,7 @@ export function SaleForm({
         id: lineItem.id,
         itemId: lineItem.itemId,
         variantId,
+        sellPrice: lineItem.sellPrice.toString(),
         qty: lineItem.qty.toString(),
       }
     })
@@ -105,7 +108,8 @@ export function SaleForm({
     const effectiveVariantId = item?.hasVariants ? draft.variantId || item.variants[0]?.id || "" : ""
     const variant = item?.variants.find(entry => entry.id === effectiveVariantId)
     const quantity = parseInt(draft.qty) || 0
-    const sellPrice = item?.hasVariants ? (variant?.sellPrice || 0) : (item?.sellPrice || 0)
+    const parsedSellPrice = parseFloat(draft.sellPrice)
+    const sellPrice = Number.isFinite(parsedSellPrice) && parsedSellPrice >= 0 ? parsedSellPrice : 0
     const costPrice = item?.hasVariants ? (variant?.costPrice || 0) : (item?.costPrice || 0)
     const total = calcTotal(sellPrice, quantity)
     const profit = calcProfit(sellPrice, costPrice, quantity)
@@ -116,14 +120,19 @@ export function SaleForm({
       variant,
       effectiveVariantId,
       quantity,
+      sellPrice,
+      costPrice,
       total,
       profit,
     }
   })
 
-  const validLineItems = computedLineItems.filter(({ item, variant, quantity }) => {
+  const validLineItems = computedLineItems.filter(({ draft, item, variant, quantity }) => {
     if (!item || quantity <= 0) return false
     if (item.hasVariants && !variant) return false
+    if (!draft.sellPrice.trim()) return false
+    const parsedSellPrice = parseFloat(draft.sellPrice)
+    if (!Number.isFinite(parsedSellPrice) || parsedSellPrice < 0) return false
     return true
   })
 
@@ -163,14 +172,14 @@ export function SaleForm({
     e.preventDefault()
     if (!isValid) return
 
-    const lineItems: SaleLineItem[] = validLineItems.map(({ draft, item, variant, quantity, total, profit }) => ({
+    const lineItems: SaleLineItem[] = validLineItems.map(({ draft, item, variant, quantity, sellPrice, costPrice, total, profit }) => ({
       id: draft.id,
       itemId: item!.id,
       itemName: item!.name,
       category: item!.category,
       variant: item!.hasVariants ? variant?.name || null : null,
-      sellPrice: item!.hasVariants ? (variant?.sellPrice || 0) : item!.sellPrice,
-      costPrice: item!.hasVariants ? (variant?.costPrice || 0) : item!.costPrice,
+      sellPrice,
+      costPrice,
       qty: quantity,
       total,
       profit,
@@ -243,12 +252,12 @@ export function SaleForm({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                      <div className="space-y-2 md:col-span-6">
+                      <div className="space-y-2 md:col-span-5">
                         <Label>Item</Label>
                         <select
                           className="flex h-10 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
                           value={draft.itemId}
-                          onChange={(e) => updateLineDraft(draft.id, { itemId: e.target.value, variantId: "" })}
+                          onChange={(e) => updateLineDraft(draft.id, { itemId: e.target.value, variantId: "", sellPrice: "" })}
                         >
                           <option value="" disabled>Select an item...</option>
                           {items.map(item => (
@@ -259,23 +268,27 @@ export function SaleForm({
                         </select>
                       </div>
 
-                      <div className="space-y-2 md:col-span-4">
+                      <div className="space-y-2 md:col-span-3">
                         <Label>Variant</Label>
                         <select
                           className="flex h-10 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border disabled:opacity-50"
                           value={line.effectiveVariantId}
-                          onChange={(e) => updateLineDraft(draft.id, { variantId: e.target.value })}
+                          onChange={(e) => updateLineDraft(draft.id, { variantId: e.target.value, sellPrice: "" })}
                           disabled={!line.item?.hasVariants}
                         >
                           <option value="" disabled>{line.item?.hasVariants ? "Select a variant..." : "No variants"}</option>
                           {line.item?.variants.map(variant => (
                             <option key={variant.id} value={variant.id}>
-                              {variant.name} — {formatCurrency(variant.sellPrice, currency)}
+                              {variant.name}
                             </option>
                           ))}
                         </select>
                       </div>
 
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Sell Price <span className="text-destructive">*</span></Label>
+                        <Input type="number" min="0" step="0.01" value={draft.sellPrice} onChange={e => updateLineDraft(draft.id, { sellPrice: e.target.value })} placeholder="0.00" required />
+                      </div>
                       <div className="space-y-2 md:col-span-2">
                         <Label>Qty</Label>
                         <Input type="number" min="1" step="1" value={draft.qty} onChange={e => updateLineDraft(draft.id, { qty: e.target.value })} />
@@ -283,10 +296,14 @@ export function SaleForm({
                     </div>
 
                     {line.item ? (
-                      <div className="grid grid-cols-3 gap-3 rounded-lg border border-border/30 bg-card px-3 py-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 rounded-lg border border-border/30 bg-card px-3 py-3">
                         <div>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit Price</div>
-                          <div className="font-mono text-sm">{formatCurrency(line.item.hasVariants ? (line.variant?.sellPrice || 0) : line.item.sellPrice, currency)}</div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit Sell</div>
+                          <div className="font-mono text-sm">{formatCurrency(line.sellPrice, currency)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit Cost</div>
+                          <div className="font-mono text-sm">{formatCurrency(line.costPrice, currency)}</div>
                         </div>
                         <div>
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Line Total</div>

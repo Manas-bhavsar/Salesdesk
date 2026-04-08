@@ -48,7 +48,6 @@ function EditItemForm({
   const [name, setName] = useState(item.name)
   const [category, setCategory] = useState(item.category)
   const [sku, setSku] = useState(item.sku)
-  const [sellPrice, setSellPrice] = useState(item.sellPrice.toString())
   const [costPrice, setCostPrice] = useState(item.costPrice.toString())
   const [hasVariants, setHasVariants] = useState(item.hasVariants)
   const [variants, setVariants] = useState<Variant[]>(() => item.variants.map(variant => ({ ...variant })))
@@ -65,7 +64,8 @@ function EditItemForm({
       sku: sku.trim(),
       hasVariants,
       variants: hasVariants ? variants : [],
-      sellPrice: hasVariants ? 0 : parseFloat(sellPrice) || 0,
+      // Sale price is entered when recording a sale (not stored in catalog).
+      sellPrice: hasVariants ? 0 : item.sellPrice,
       costPrice: hasVariants ? 0 : parseFloat(costPrice) || 0,
     }
 
@@ -129,13 +129,10 @@ function EditItemForm({
 
           {!hasVariants ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-2">
-                <Label htmlFor="editSellPrice">Sell Price</Label>
-                <Input id="editSellPrice" type="number" min="0" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} placeholder="0.00" />
-              </div>
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="editCostPrice">Cost Price</Label>
-                <Input id="editCostPrice" type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" />
+                <Input id="editCostPrice" type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" required />
+                <div className="text-xs text-muted-foreground">Sale price is entered when you record a sale.</div>
               </div>
             </div>
           ) : (

@@ -10,11 +10,9 @@ export function exportItemsCatalog(items: Item[], currency: string): void {
       "Item Name": item.name,
       "Category": item.category,
       "SKU": item.sku || "",
-      "Sell Price": item.hasVariants ? "" : item.sellPrice,
       "Cost Price": item.hasVariants ? "" : item.costPrice,
       "Has Variants": item.hasVariants ? "Yes" : "No",
       "Variant Names": item.hasVariants ? item.variants.map(v => v.name).join(" | ") : "",
-      "Variant Sell Prices": item.hasVariants ? item.variants.map(v => v.sellPrice).join(" | ") : "",
       "Variant Cost Prices": item.hasVariants ? item.variants.map(v => v.costPrice).join(" | ") : ""
     }
   })
@@ -41,11 +39,9 @@ export function exportItemsCatalog(items: Item[], currency: string): void {
       "Item Name": 25,
       "Category": 15,
       "SKU": 12,
-      "Sell Price": 12,
       "Cost Price": 12,
       "Has Variants": 12,
       "Variant Names": 30,
-      "Variant Sell Prices": 20,
       "Variant Cost Prices": 20
     }
     ws['!cols'] = currentKeys.map(key => ({ wch: defaultWidths[key] || 15 }))

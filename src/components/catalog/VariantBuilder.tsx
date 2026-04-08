@@ -12,20 +12,19 @@ interface VariantBuilderProps {
 
 export function VariantBuilder({ variants, onChange }: VariantBuilderProps) {
   const [name, setName] = useState("")
-  const [sellPrice, setSellPrice] = useState("")
   const [costPrice, setCostPrice] = useState("")
 
   const addVariant = () => {
-    if (!name.trim() || !sellPrice) return
+    if (!name.trim()) return
     const newVariant: Variant = {
       id: crypto.randomUUID(),
       name: name.trim(),
-      sellPrice: parseFloat(sellPrice) || 0,
+      // Sale price is entered when recording a sale (not stored in catalog).
+      sellPrice: 0,
       costPrice: parseFloat(costPrice) || 0,
     }
     onChange([...variants, newVariant])
     setName("")
-    setSellPrice("")
     setCostPrice("")
   }
 
@@ -42,23 +41,20 @@ export function VariantBuilder({ variants, onChange }: VariantBuilderProps) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
         <div className="space-y-1 md:col-span-2">
           <Label className="text-xs text-muted-foreground">Name (e.g. Small, Red)</Label>
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="Variant name" className="h-9" />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Sell Price</Label>
-          <Input type="number" min="0" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} placeholder="0.00" className="h-9" />
-        </div>
-        <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Cost Price</Label>
           <div className="flex gap-2">
             <Input type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" className="h-9" />
-            <Button type="button" size="icon" className="h-9 w-9 shrink-0" onClick={addVariant} disabled={!name.trim() || !sellPrice}>
+            <Button type="button" size="icon" className="h-9 w-9 shrink-0" onClick={addVariant} disabled={!name.trim()}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
+          <div className="text-[11px] text-muted-foreground">Sale price is entered when you record a sale.</div>
         </div>
       </div>
 
@@ -68,7 +64,6 @@ export function VariantBuilder({ variants, onChange }: VariantBuilderProps) {
             <div key={v.id} className="flex items-center justify-between bg-card p-2.5 px-3.5 rounded-lg border border-border/30 text-sm transition-all duration-200 hover:border-border/60">
               <span className="font-medium">{v.name}</span>
               <div className="flex items-center gap-4 text-muted-foreground">
-                <span className="font-mono text-xs">Sell: {v.sellPrice}</span>
                 <span className="font-mono text-xs">Cost: {v.costPrice}</span>
                 <button type="button" onClick={() => removeVariant(v.id)} className="text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg p-1 transition-all duration-200">
                   <X className="h-3.5 w-3.5" />

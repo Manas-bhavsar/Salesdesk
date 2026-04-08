@@ -15,7 +15,6 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
   const [name, setName] = useState("")
   const [category, setCategory] = useState(categories[0] || "")
   const [sku, setSku] = useState("")
-  const [sellPrice, setSellPrice] = useState("")
   const [costPrice, setCostPrice] = useState("")
   const [hasVariants, setHasVariants] = useState(false)
   const [variants, setVariants] = useState<Variant[]>([])
@@ -32,7 +31,8 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
       sku: sku.trim(),
       hasVariants,
       variants: hasVariants ? variants : [],
-      sellPrice: hasVariants ? 0 : parseFloat(sellPrice) || 0,
+      // Sale price is entered when recording a sale (not stored in catalog).
+      sellPrice: 0,
       costPrice: hasVariants ? 0 : parseFloat(costPrice) || 0,
       createdAt: Date.now()
     }
@@ -41,7 +41,6 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
 
     setName("")
     setSku("")
-    setSellPrice("")
     setCostPrice("")
     setHasVariants(false)
     setVariants([])
@@ -92,13 +91,10 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
 
       {!hasVariants ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="space-y-2">
-            <Label htmlFor="sellPrice">Sell Price</Label>
-            <Input id="sellPrice" type="number" min="0" step="0.01" value={sellPrice} onChange={e => setSellPrice(e.target.value)} placeholder="0.00" />
-          </div>
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="costPrice">Cost Price</Label>
-            <Input id="costPrice" type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" />
+            <Input id="costPrice" type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" required />
+            <div className="text-xs text-muted-foreground">Sale price is entered when you record a sale.</div>
           </div>
         </div>
       ) : (
