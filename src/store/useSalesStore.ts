@@ -37,7 +37,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
     persistSales(sales)
     set({ sales })
   },
-  getTotalRevenue: () => get().sales.reduce((sum, sale) => sum + sale.total, 0),
+  getTotalRevenue: () => get().sales.reduce((sum, sale) => sum + sale.totalSoldPrice, 0),
   getTotalProfit: () => get().sales.reduce((sum, sale) => sum + sale.profit, 0),
   getSalesByDateRange: (start, end) => {
     return get().sales.filter(s => s.date >= start && s.date <= end)

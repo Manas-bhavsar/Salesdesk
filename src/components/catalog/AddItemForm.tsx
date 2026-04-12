@@ -14,8 +14,8 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
   
   const [name, setName] = useState("")
   const [category, setCategory] = useState(categories[0] || "")
-  const [sku, setSku] = useState("")
   const [costPrice, setCostPrice] = useState("")
+  const [stockQuantity, setStockQuantity] = useState("")
   const [hasVariants, setHasVariants] = useState(false)
   const [variants, setVariants] = useState<Variant[]>([])
 
@@ -28,20 +28,20 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
       id: crypto.randomUUID(),
       name: name.trim(),
       category: category || categories[0] || "Uncategorized",
-      sku: sku.trim(),
       hasVariants,
       variants: hasVariants ? variants : [],
       // Sale price is entered when recording a sale (not stored in catalog).
       sellPrice: 0,
       costPrice: hasVariants ? 0 : parseFloat(costPrice) || 0,
+      stockQuantity: hasVariants ? 0 : parseInt(stockQuantity, 10) || 0,
       createdAt: Date.now()
     }
 
     addItem(newItem)
 
     setName("")
-    setSku("")
     setCostPrice("")
+    setStockQuantity("")
     setHasVariants(false)
     setVariants([])
     if (onSuccess) onSuccess()
@@ -58,19 +58,12 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
           <Label htmlFor="itemCategory">Category</Label>
           <select
             id="itemCategory"
-            className="flex h-10 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
+            className="flex h-10 w-full rounded-lg border border-border/60 bg-card px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
             value={category}
             onChange={e => setCategory(e.target.value)}
           >
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="space-y-2">
-          <Label htmlFor="itemSku">SKU <span className="text-muted-foreground font-normal">(optional)</span></Label>
-          <Input id="itemSku" value={sku} onChange={e => setSku(e.target.value)} placeholder="e.g. WM-001" />
         </div>
       </div>
 
@@ -91,10 +84,16 @@ export function AddItemForm({ onSuccess }: { onSuccess?: () => void }) {
 
       {!hasVariants ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="costPrice">Cost Price</Label>
             <Input id="costPrice" type="number" min="0" step="0.01" value={costPrice} onChange={e => setCostPrice(e.target.value)} placeholder="0.00" required />
-            <div className="text-xs text-muted-foreground">Sale price is entered when you record a sale.</div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stockQuantity">Inventory Quantity</Label>
+            <Input id="stockQuantity" type="number" min="0" step="1" value={stockQuantity} onChange={e => setStockQuantity(e.target.value)} placeholder="0" required />
+          </div>
+          <div className="text-xs text-muted-foreground md:col-span-2">
+            Add the total units you currently have in stock. Sales will be compared against this quantity on the inventory page.
           </div>
         </div>
       ) : (

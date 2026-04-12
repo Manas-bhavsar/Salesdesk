@@ -1,23 +1,21 @@
-import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
 import { TrendingUp, IndianRupee, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react"
+import { Sale } from "@/types"
+import { getSaleTotalUnits } from "@/lib/sales"
 
-export function StatCards() {
-  const sales = useSalesStore(state => state.sales)
-  const getTotalRevenue = useSalesStore(state => state.getTotalRevenue)
-  const getTotalProfit = useSalesStore(state => state.getTotalProfit)
+export function StatCards({ sales }: { sales: Sale[] }) {
   const currency = useStoreConfig(state => state.config.currency)
 
-  const revenue = getTotalRevenue()
-  const profit = getTotalProfit()
+  const revenue = sales.reduce((sum, sale) => sum + sale.totalSoldPrice, 0)
+  const profit = sales.reduce((sum, sale) => sum + sale.profit, 0)
   const margin = revenue > 0 ? (profit / revenue) * 100 : 0
-  const totalUnits = sales.reduce((sum, s) => sum + s.qty, 0)
+  const totalUnits = sales.reduce((sum, s) => sum + getSaleTotalUnits(s), 0)
 
   // Calculate total unpaid amount
   const totalUnpaid = sales.reduce((sum, s) => {
     const status = s.paymentStatus || 'paid'
-    if (status === 'unpaid') return sum + s.total
+    if (status === 'unpaid') return sum + s.totalSoldPrice
     if (status === 'half-paid') return sum + (s.amountDue || 0)
     return sum
   }, 0)
@@ -26,18 +24,18 @@ export function StatCards() {
 
   const stats = [
     {
-      label: "Net Revenue",
+      label: "Sales amount",
       value: formatCurrency(revenue, currency),
-      sub: `${totalUnits} units sold`,
+      sub: `${totalUnits} items sold`,
       icon: IndianRupee,
-      gradient: "from-amber-500/15 to-amber-600/5",
-      iconBg: "bg-amber-500/15 text-amber-400",
-      border: "hover:border-amber-500/20",
+      gradient: "from-primary/15 to-primary/5",
+      iconBg: "bg-primary/15 text-primary",
+      border: "hover:border-primary/20",
     },
     {
-      label: "Net Profit",
+      label: "Profit",
       value: formatCurrency(profit, currency),
-      sub: `${margin.toFixed(1)}% margin`,
+      sub: `${margin.toFixed(1)}% profit margin`,
       icon: TrendingUp,
       gradient: profit >= 0 ? "from-emerald-500/15 to-emerald-600/5" : "from-red-500/15 to-red-600/5",
       iconBg: profit >= 0 ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400",
@@ -46,9 +44,9 @@ export function StatCards() {
       trend: profit > 0 ? "up" as const : profit < 0 ? "down" as const : null,
     },
     {
-      label: "Unpaid Amount",
+      label: "Money to collect",
       value: formatCurrency(totalUnpaid, currency),
-      sub: unpaidCount > 0 ? `${unpaidCount} pending bill${unpaidCount !== 1 ? 's' : ''}` : "all bills cleared",
+      sub: unpaidCount > 0 ? `${unpaidCount} unpaid sale${unpaidCount !== 1 ? 's' : ''}` : "nothing is due",
       icon: AlertCircle,
       gradient: totalUnpaid > 0 ? "from-red-500/15 to-red-600/5" : "from-emerald-500/15 to-emerald-600/5",
       iconBg: totalUnpaid > 0 ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400",

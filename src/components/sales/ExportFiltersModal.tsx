@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useItemsStore } from "@/store/useItemsStore"
 import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
@@ -9,49 +9,40 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
+import { SalesFilters, defaultSalesFilters, filterSales, getItemsWithSales, getUniqueCustomers, hasActiveSalesFilters } from "@/lib/salesFilters"
 import { Download, Filter, X, Calendar, Package, User, FileSpreadsheet } from "lucide-react"
 
 interface ExportFiltersModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  initialFilters?: Partial<SalesFilters>
 }
 
-export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFiltersModalProps) {
+export function ExportFiltersModal({ open, onOpenChange, onSuccess, initialFilters }: ExportFiltersModalProps) {
   const sales = useSalesStore(state => state.sales)
   const items = useItemsStore(state => state.items)
   const currency = useStoreConfig(state => state.config.currency)
 
   // Filters
-  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
-  const [customerSearch, setCustomerSearch] = useState("")
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>(() => initialFilters?.itemIds ?? [...defaultSalesFilters.itemIds])
+  const [dateFrom, setDateFrom] = useState(() => initialFilters?.dateFrom ?? defaultSalesFilters.dateFrom)
+  const [dateTo, setDateTo] = useState(() => initialFilters?.dateTo ?? defaultSalesFilters.dateTo)
+  const [customerSearch, setCustomerSearch] = useState(() => initialFilters?.customerQuery ?? defaultSalesFilters.customerQuery)
 
   // Reset filters when modal opens
   const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setSelectedItemIds(new Set())
-      setDateFrom("")
-      setDateTo("")
-      setCustomerSearch("")
-    }
     onOpenChange(open)
   }
 
   // Get unique items that have sales
   const itemsWithSales = useMemo(() => {
-    const itemIds = new Set(sales.map(s => s.itemId))
-    return items.filter(i => itemIds.has(i.id))
+    return getItemsWithSales(items, sales)
   }, [sales, items])
 
   // Get unique customer names from sales
   const uniqueCustomers = useMemo(() => {
-    const names = new Set<string>()
-    sales.forEach(s => {
-      if (s.customerName?.trim()) names.add(s.customerName.trim())
-    })
-    return Array.from(names).sort()
+    return getUniqueCustomers(sales)
   }, [sales])
 
   const filteredCustomers = useMemo(() => {
@@ -62,45 +53,40 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
 
   // Apply filters
   const filteredSales = useMemo(() => {
-    return sales.filter(sale => {
-      // Item filter
-      if (selectedItemIds.size > 0 && !selectedItemIds.has(sale.itemId)) return false
-      // Date range filter
-      if (dateFrom && sale.date < dateFrom) return false
-      if (dateTo && sale.date > dateTo) return false
-      // Customer name filter
-      if (customerSearch.trim()) {
-        const q = customerSearch.toLowerCase()
-        if (!sale.customerName?.toLowerCase().includes(q)) return false
-      }
-      return true
+    return filterSales(sales, {
+      itemIds: selectedItemIds,
+      dateFrom,
+      dateTo,
+      customerQuery: customerSearch,
     })
   }, [sales, selectedItemIds, dateFrom, dateTo, customerSearch])
 
   // Summary stats for filtered data
   const summary = useMemo(() => {
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0)
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalSoldPrice, 0)
     const totalProfit = filteredSales.reduce((sum, s) => sum + s.profit, 0)
     return { count: filteredSales.length, totalRevenue, totalProfit }
   }, [filteredSales])
 
   const toggleItem = (id: string) => {
-    setSelectedItemIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    setSelectedItemIds(prev => (
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    ))
   }
 
   const clearAllFilters = () => {
-    setSelectedItemIds(new Set())
+    setSelectedItemIds([])
     setDateFrom("")
     setDateTo("")
     setCustomerSearch("")
   }
 
-  const hasActiveFilters = selectedItemIds.size > 0 || dateFrom || dateTo || customerSearch.trim()
+  const hasActiveFilters = hasActiveSalesFilters({
+    itemIds: selectedItemIds,
+    dateFrom,
+    dateTo,
+    customerQuery: customerSearch,
+  })
 
   const handleExport = () => {
     if (filteredSales.length === 0) return
@@ -120,7 +106,7 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
             <div>
               <DialogTitle className="text-xl">Export Sales</DialogTitle>
               <DialogDescription className="text-xs mt-0.5">
-                Apply filters to export specific sales data
+                Pick which sales you want to export
               </DialogDescription>
             </div>
           </div>
@@ -135,7 +121,7 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
               >
                 <X className="h-3 w-3" />
-                Clear all filters
+                Reset filters
               </button>
             </div>
           )}
@@ -144,7 +130,7 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-400" />
-              <Label className="text-sm font-medium">Date Range</Label>
+              <Label className="text-sm font-medium">Date</Label>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -175,18 +161,18 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
                 <Package className="h-4 w-4 text-amber-400" />
                 <Label className="text-sm font-medium">Items</Label>
               </div>
-              {selectedItemIds.size > 0 && (
+              {selectedItemIds.length > 0 && (
                 <span className="text-[11px] text-primary font-medium">
-                  {selectedItemIds.size} selected
+                  {selectedItemIds.length} selected
                 </span>
               )}
             </div>
             {itemsWithSales.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">No items with sales data</p>
+              <p className="text-xs text-muted-foreground py-2">No items have sales yet</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {itemsWithSales.map(item => {
-                  const isSelected = selectedItemIds.has(item.id)
+                  const isSelected = selectedItemIds.includes(item.id)
                   return (
                     <button
                       key={item.id}
@@ -208,8 +194,8 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
                 })}
               </div>
             )}
-            {selectedItemIds.size === 0 && itemsWithSales.length > 0 && (
-              <p className="text-[11px] text-muted-foreground/70">All items included by default</p>
+            {selectedItemIds.length === 0 && itemsWithSales.length > 0 && (
+              <p className="text-[11px] text-muted-foreground/70">All items are included by default</p>
             )}
           </div>
 
@@ -217,12 +203,12 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-violet-400" />
-              <Label className="text-sm font-medium">Customer</Label>
+              <Label className="text-sm font-medium">Customer name</Label>
             </div>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
               <Input
-                placeholder="Search by customer name..."
+                placeholder="Type a customer name"
                 className="pl-9"
                 value={customerSearch}
                 onChange={e => setCustomerSearch(e.target.value)}
@@ -253,16 +239,16 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess }: ExportFilt
           <div className="p-4 bg-surface rounded-xl border border-border/40 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 mb-3">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Export Preview</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Preview</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Records</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Sales</div>
                 <div className="text-lg font-heading font-bold">{summary.count}</div>
                 <div className="text-[10px] text-muted-foreground">of {sales.length} total</div>
               </div>
               <div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Revenue</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Sales amount</div>
                 <div className="text-sm font-mono font-semibold">{formatCurrency(summary.totalRevenue, currency)}</div>
               </div>
               <div>

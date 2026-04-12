@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Item } from '@/types'
-import { getItems, setItems as persistItems } from '@/lib/localStorage'
+import { getItems, normalizeItems, setItems as persistItems } from '@/lib/localStorage'
 
 type ItemsState = {
   items: Item[]
@@ -15,12 +15,12 @@ const initialItems = typeof window !== 'undefined' ? getItems() : []
 export const useItemsStore = create<ItemsState>()((set) => ({
   items: initialItems,
   addItem: (item) => set((state) => {
-    const newItems = [...state.items, item]
+    const newItems = normalizeItems([...state.items, item])
     persistItems(newItems)
     return { items: newItems }
   }),
   updateItem: (id, updated) => set((state) => {
-    const newItems = state.items.map(i => i.id === id ? updated : i)
+    const newItems = normalizeItems(state.items.map(i => i.id === id ? updated : i))
     persistItems(newItems)
     return { items: newItems }
   }),
@@ -30,7 +30,8 @@ export const useItemsStore = create<ItemsState>()((set) => ({
     return { items: newItems }
   }),
   setItems: (items) => {
-    persistItems(items)
-    set({ items })
+    const normalizedItems = normalizeItems(items)
+    persistItems(normalizedItems)
+    set({ items: normalizedItems })
   }
 }))

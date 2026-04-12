@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
-import { getSaleExpensesTotal, getSaleItemsSummary, getSaleTotalUnits, getSaleVariantSummary } from "@/lib/sales"
+import { getSaleExpensesTotal, getSaleItemsSummary, getSaleTotalUnits } from "@/lib/sales"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EditSaleModal } from "@/components/sales/EditSaleModal"
+import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal"
 import { useToast } from "@/components/ui/Toast"
 import { Trash2, Clock, Pencil, CheckCircle2 } from "lucide-react"
 import { format } from "date-fns"
@@ -57,11 +58,12 @@ function PaymentBadge({ sale, onMarkPaid }: { sale: Sale, onMarkPaid: (sale: Sal
   )
 }
 
-export function RecentSalesTable() {
-  const sales = useSalesStore(state => state.sales)
-  const recentSales = useMemo(() => {
-    return [...sales].sort((a, b) => b.createdAt - a.createdAt).slice(0, 10)
-  }, [sales])
+export function RecentSalesTable({
+  sales,
+}: {
+  sales: Sale[]
+}) {
+  const recentSales = sales
   const deleteSale = useSalesStore(state => state.deleteSale)
   const updateSale = useSalesStore(state => state.updateSale)
   const currency = useStoreConfig(state => state.config.currency)
@@ -69,10 +71,17 @@ export function RecentSalesTable() {
 
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
 
   const handleEdit = (sale: Sale) => {
     setEditingSale(sale)
     setEditModalOpen(true)
+  }
+
+  const handleOpenDetails = (sale: Sale) => {
+    setSelectedSale(sale)
+    setDetailsModalOpen(true)
   }
 
   const handleDelete = (id: string) => {
@@ -98,28 +107,26 @@ export function RecentSalesTable() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-base font-heading font-semibold">Recent Sales</h3>
+          <h3 className="text-base font-heading font-semibold">Sales list</h3>
           <span className="text-xs text-muted-foreground bg-surface px-2 py-0.5 rounded-full border border-border/40">
-            latest {recentSales.length}
+            showing {recentSales.length} of {sales.length}
           </span>
         </div>
       </div>
 
       <div className="border border-border/40 rounded-2xl overflow-hidden bg-card/80 shadow-sm">
-        <div className="overflow-x-auto custom-scrollbar">
+        <div className="overflow-auto custom-scrollbar max-h-[520px]">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead>
-              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface/60 border-b border-border/40">
+            <thead className="sticky top-0 z-10">
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface border-b border-border/40">
                 <th className="px-5 py-3.5 font-medium">Date</th>
                 <th className="px-5 py-3.5 font-medium">Items</th>
-                <th className="px-5 py-3.5 font-medium">Variant</th>
-                <th className="px-5 py-3.5 font-medium text-right">Qty</th>
-                <th className="px-5 py-3.5 font-medium text-right">Revenue</th>
+                <th className="px-5 py-3.5 font-medium text-right">Units</th>
+                <th className="px-5 py-3.5 font-medium text-right">Sold Amount</th>
                 <th className="px-5 py-3.5 font-medium text-right">Expenses</th>
                 <th className="px-5 py-3.5 font-medium text-right">Profit</th>
-                <th className="px-5 py-3.5 font-medium">Payment</th>
+                <th className="px-5 py-3.5 font-medium">Status</th>
                 <th className="px-5 py-3.5 font-medium">Customer</th>
-                <th className="px-5 py-3.5 font-medium">Note</th>
                 <th className="px-5 py-3.5 font-medium text-center w-20"></th>
               </tr>
             </thead>
@@ -127,24 +134,16 @@ export function RecentSalesTable() {
               {recentSales.map((sale, i) => (
                 <tr
                   key={sale.id}
-                  className="group border-b border-border/20 hover:bg-surface-hover/50 transition-colors last:border-b-0 table-row-animate"
+                  className="group border-b border-border/20 hover:bg-surface-hover/50 transition-colors last:border-b-0 table-row-animate cursor-pointer"
                   style={{ animationDelay: `${i * 35}ms` }}
+                  onClick={() => handleOpenDetails(sale)}
                 >
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {format(new Date(sale.date + 'T12:00:00'), 'MMM d, yyyy')}
                   </td>
                   <td className="px-5 py-3.5 font-medium">{getSaleItemsSummary(sale)}</td>
-                  <td className="px-5 py-3.5">
-                    {getSaleVariantSummary(sale) ? (
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/15 font-normal text-[11px]">
-                        {getSaleVariantSummary(sale)}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground/40">—</span>
-                    )}
-                  </td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">{getSaleTotalUnits(sale)}</td>
-                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(sale.total, currency)}</td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(sale.totalSoldPrice, currency)}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(getSaleExpensesTotal(sale), currency)}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
                     <span className={sale.profit > 0 ? "text-profit" : sale.profit < 0 ? "text-loss" : ""}>
@@ -157,23 +156,26 @@ export function RecentSalesTable() {
                   <td className="px-5 py-3.5 text-muted-foreground max-w-[140px] truncate" title={sale.customerName || ""}>
                     {sale.customerName || <span className="text-muted-foreground/40">—</span>}
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground max-w-[140px] truncate" title={sale.note}>
-                    {sale.note || <span className="text-muted-foreground/40">—</span>}
-                  </td>
                   <td className="px-5 py-3.5 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(sale)}
-                        className="h-7 w-7 text-muted-foreground/40 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEdit(sale)
+                        }}
+                        className="h-7 w-7 text-muted-foreground/40 hover:text-primary hover:bg-primary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(sale.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(sale.id)
+                        }}
                         className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -185,9 +187,18 @@ export function RecentSalesTable() {
             </tbody>
           </table>
         </div>
+        {sales.length > 10 && (
+          <div className="px-5 py-2.5 border-t border-border/30 bg-surface/60 text-xs text-muted-foreground text-center">
+            Showing all {recentSales.length} sales · Scroll to see more
+          </div>
+        )}
       </div>
 
-      {/* Edit Sale Modal */}
+      <SaleDetailsModal
+        sale={selectedSale}
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+      />
       <EditSaleModal
         sale={editingSale}
         open={editModalOpen}

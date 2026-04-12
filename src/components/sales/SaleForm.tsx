@@ -3,7 +3,7 @@ import { format } from "date-fns"
 import { ArrowRight, Check, CreditCard, Package2, Plus, Receipt, Trash2, User, Wallet } from "lucide-react"
 import { useItemsStore } from "@/store/useItemsStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
-import { calcProfit, calcTotal, formatCurrency } from "@/lib/calculations"
+import { formatCurrency } from "@/lib/calculations"
 import { getSaleExpenses, getSaleLineItems } from "@/lib/sales"
 import { PaymentStatus, Sale, SaleExpense, SaleLineItem } from "@/types"
 import { DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -25,7 +25,6 @@ type LineItemDraft = {
   id: string
   itemId: string
   variantId: string
-  sellPrice: string
   qty: string
 }
 
@@ -40,7 +39,6 @@ function createEmptyLineItemDraft(): LineItemDraft {
     id: crypto.randomUUID(),
     itemId: "",
     variantId: "",
-    sellPrice: "",
     qty: "1",
   }
 }
@@ -79,7 +77,6 @@ export function SaleForm({
         id: lineItem.id,
         itemId: lineItem.itemId,
         variantId,
-        sellPrice: lineItem.sellPrice.toString(),
         qty: lineItem.qty.toString(),
       }
     })
@@ -97,6 +94,7 @@ export function SaleForm({
 
   const [lineItemDrafts, setLineItemDrafts] = useState<LineItemDraft[]>(initialLineDrafts)
   const [expenseDrafts, setExpenseDrafts] = useState<ExpenseDraft[]>(initialExpenseDrafts)
+  const [totalSoldPrice, setTotalSoldPrice] = useState(sale?.totalSoldPrice ? sale.totalSoldPrice.toString() : "")
   const [date, setDate] = useState(sale?.date ?? format(new Date(), "yyyy-MM-dd"))
   const [customerName, setCustomerName] = useState(sale?.customerName ?? "")
   const [note, setNote] = useState(sale?.note ?? "")
@@ -108,11 +106,8 @@ export function SaleForm({
     const effectiveVariantId = item?.hasVariants ? draft.variantId || item.variants[0]?.id || "" : ""
     const variant = item?.variants.find(entry => entry.id === effectiveVariantId)
     const quantity = parseInt(draft.qty) || 0
-    const parsedSellPrice = parseFloat(draft.sellPrice)
-    const sellPrice = Number.isFinite(parsedSellPrice) && parsedSellPrice >= 0 ? parsedSellPrice : 0
     const costPrice = item?.hasVariants ? (variant?.costPrice || 0) : (item?.costPrice || 0)
-    const total = calcTotal(sellPrice, quantity)
-    const profit = calcProfit(sellPrice, costPrice, quantity)
+    const totalCost = costPrice * quantity
 
     return {
       draft,
@@ -120,19 +115,14 @@ export function SaleForm({
       variant,
       effectiveVariantId,
       quantity,
-      sellPrice,
       costPrice,
-      total,
-      profit,
+      totalCost,
     }
   })
 
-  const validLineItems = computedLineItems.filter(({ draft, item, variant, quantity }) => {
+  const validLineItems = computedLineItems.filter(({ item, variant, quantity }) => {
     if (!item || quantity <= 0) return false
     if (item.hasVariants && !variant) return false
-    if (!draft.sellPrice.trim()) return false
-    const parsedSellPrice = parseFloat(draft.sellPrice)
-    if (!Number.isFinite(parsedSellPrice) || parsedSellPrice < 0) return false
     return true
   })
 
@@ -149,15 +139,17 @@ export function SaleForm({
     })
     .filter((expense): expense is SaleExpense => expense !== null)
 
-  const subtotal = validLineItems.reduce((sum, line) => sum + line.total, 0)
-  const grossProfit = validLineItems.reduce((sum, line) => sum + line.profit, 0)
+  const totalCost = validLineItems.reduce((sum, line) => sum + line.totalCost, 0)
+  const parsedSoldPrice = parseFloat(totalSoldPrice) || 0
   const extraExpensesTotal = validExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-  const netProfit = grossProfit - extraExpensesTotal
+  const netProfit = parsedSoldPrice - totalCost - extraExpensesTotal
   const totalUnits = validLineItems.reduce((sum, line) => sum + line.quantity, 0)
 
   const isValid =
     validLineItems.length > 0 &&
     validLineItems.length === lineItemDrafts.length &&
+    totalSoldPrice.trim() !== "" &&
+    !isNaN(parsedSoldPrice) &&
     Boolean(date)
 
   const updateLineDraft = (id: string, updates: Partial<LineItemDraft>) => {
@@ -172,17 +164,15 @@ export function SaleForm({
     e.preventDefault()
     if (!isValid) return
 
-    const lineItems: SaleLineItem[] = validLineItems.map(({ draft, item, variant, quantity, sellPrice, costPrice, total, profit }) => ({
+    const lineItems: SaleLineItem[] = validLineItems.map(({ draft, item, variant, quantity, costPrice, totalCost }) => ({
       id: draft.id,
       itemId: item!.id,
       itemName: item!.name,
       category: item!.category,
       variant: item!.hasVariants ? variant?.name || null : null,
-      sellPrice,
       costPrice,
       qty: quantity,
-      total,
-      profit,
+      totalCost,
     }))
 
     const primaryLine = lineItems[0]
@@ -193,20 +183,17 @@ export function SaleForm({
       itemName: primaryLine.itemName,
       category: primaryLine.category,
       variant: lineItems.length === 1 ? primaryLine.variant : null,
-      sellPrice: primaryLine.sellPrice,
-      costPrice: primaryLine.costPrice,
-      qty: totalUnits,
-      total: subtotal,
+      totalCost,
+      totalSoldPrice: parsedSoldPrice,
       profit: netProfit,
       date,
       note: note.trim(),
       customerName: customerName.trim(),
       paymentStatus,
-      amountDue: paymentStatus === "half-paid" ? (parseFloat(amountDue) || 0) : paymentStatus === "unpaid" ? subtotal : 0,
+      amountDue: paymentStatus === "half-paid" ? (parseFloat(amountDue) || 0) : paymentStatus === "unpaid" ? parsedSoldPrice : 0,
       createdAt: sale?.createdAt ?? Date.parse(`${date}T12:00:00`),
       lineItems,
       expenses: validExpenses,
-      subtotal,
       extraExpensesTotal,
     })
   }
@@ -237,13 +224,13 @@ export function SaleForm({
             </div>
 
             <div className="space-y-3">
-              {lineItemDrafts.map((draft, index) => {
+              {lineItemDrafts.map((draft) => {
                 const line = computedLineItems.find(entry => entry.draft.id === draft.id)!
 
                 return (
                   <div key={draft.id} className="rounded-xl border border-border/40 bg-surface/50 p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground">Item {index + 1}</span>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground">Item Info</span>
                       {lineItemDrafts.length > 1 ? (
                         <Button type="button" variant="ghost" size="icon" onClick={() => setLineItemDrafts(prev => prev.filter(entry => entry.id !== draft.id))} className="h-8 w-8 text-muted-foreground/50 hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -252,12 +239,12 @@ export function SaleForm({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                      <div className="space-y-2 md:col-span-5">
+                      <div className="space-y-2 md:col-span-6">
                         <Label>Item</Label>
                         <select
-                          className="flex h-10 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
+                          className="flex h-10 w-full rounded-lg border border-border/60 bg-card px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
                           value={draft.itemId}
-                          onChange={(e) => updateLineDraft(draft.id, { itemId: e.target.value, variantId: "", sellPrice: "" })}
+                          onChange={(e) => updateLineDraft(draft.id, { itemId: e.target.value, variantId: "" })}
                         >
                           <option value="" disabled>Select an item...</option>
                           {items.map(item => (
@@ -268,12 +255,12 @@ export function SaleForm({
                         </select>
                       </div>
 
-                      <div className="space-y-2 md:col-span-3">
+                      <div className="space-y-2 md:col-span-4">
                         <Label>Variant</Label>
                         <select
-                          className="flex h-10 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border disabled:opacity-50"
+                          className="flex h-10 w-full rounded-lg border border-border/60 bg-card px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border disabled:opacity-50"
                           value={line.effectiveVariantId}
-                          onChange={(e) => updateLineDraft(draft.id, { variantId: e.target.value, sellPrice: "" })}
+                          onChange={(e) => updateLineDraft(draft.id, { variantId: e.target.value })}
                           disabled={!line.item?.hasVariants}
                         >
                           <option value="" disabled>{line.item?.hasVariants ? "Select a variant..." : "No variants"}</option>
@@ -286,34 +273,20 @@ export function SaleForm({
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label>Sell Price <span className="text-destructive">*</span></Label>
-                        <Input type="number" min="0" step="0.01" value={draft.sellPrice} onChange={e => updateLineDraft(draft.id, { sellPrice: e.target.value })} placeholder="0.00" required />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
                         <Label>Qty</Label>
                         <Input type="number" min="1" step="1" value={draft.qty} onChange={e => updateLineDraft(draft.id, { qty: e.target.value })} />
                       </div>
                     </div>
 
                     {line.item ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 rounded-lg border border-border/30 bg-card px-3 py-3">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit Sell</div>
-                          <div className="font-mono text-sm">{formatCurrency(line.sellPrice, currency)}</div>
-                        </div>
+                      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/30 bg-card px-3 py-3">
                         <div>
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit Cost</div>
                           <div className="font-mono text-sm">{formatCurrency(line.costPrice, currency)}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Line Total</div>
-                          <div className="font-mono text-sm font-semibold">{formatCurrency(line.total, currency)}</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Line Profit</div>
-                          <div className={`font-mono text-sm font-semibold ${line.profit > 0 ? "text-profit" : line.profit < 0 ? "text-loss" : ""}`}>
-                            {formatCurrency(line.profit, currency)}
-                          </div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Line Total Cost</div>
+                          <div className="font-mono text-sm font-semibold">{formatCurrency(line.totalCost, currency)}</div>
                         </div>
                       </div>
                     ) : null}
@@ -323,38 +296,58 @@ export function SaleForm({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-medium">Extra Expenses</h3>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-medium">Sale Summary</h3>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setExpenseDrafts(prev => [...prev, createEmptyExpenseDraft()])}>
-                <Plus className="h-4 w-4" />
-                Add expense
-              </Button>
+              <div className="rounded-xl border border-border/40 bg-surface/50 p-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Total Sold Price <span className="text-destructive">*</span></Label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    step="0.01" 
+                    value={totalSoldPrice} 
+                    onChange={e => setTotalSoldPrice(e.target.value)} 
+                    placeholder="0.00" 
+                    required 
+                    className="text-lg font-semibold"
+                  />
+                  <p className="text-xs text-muted-foreground">The actual amount you sold all these items for.</p>
+                </div>
+              </div>
             </div>
 
-            {expenseDrafts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/40 bg-surface/30 px-4 py-6 text-sm text-muted-foreground">
-                No extra expenses added
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Extra Expenses</h3>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setExpenseDrafts(prev => [...prev, createEmptyExpenseDraft()])}>
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
               </div>
-            ) : (
+
               <div className="space-y-3">
-                {expenseDrafts.map((expense, index) => (
+                {expenseDrafts.map((expense) => (
                   <div key={expense.id} className="rounded-xl border border-border/40 bg-surface/50 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1">
-                        <div className="space-y-2 md:col-span-8">
-                          <Label>Expense {index + 1}</Label>
+                      <div className="grid grid-cols-2 gap-3 flex-1">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase">Label</Label>
                           <Input
-                            placeholder="e.g. Delivery, packaging, transport"
+                            placeholder="Expense label"
                             value={expense.label}
                             onChange={e => updateExpenseDraft(expense.id, { label: e.target.value })}
+                            className="h-8 text-xs"
                           />
                         </div>
-                        <div className="space-y-2 md:col-span-4">
-                          <Label>Amount</Label>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase">Amount</Label>
                           <Input
                             type="number"
                             min="0"
@@ -362,17 +355,18 @@ export function SaleForm({
                             placeholder="0.00"
                             value={expense.amount}
                             onChange={e => updateExpenseDraft(expense.id, { amount: e.target.value })}
+                            className="h-8 text-xs"
                           />
                         </div>
                       </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => setExpenseDrafts(prev => prev.filter(entry => entry.id !== expense.id))} className="h-8 w-8 mt-6 text-muted-foreground/50 hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setExpenseDrafts(prev => prev.filter(entry => entry.id !== expense.id))} className="h-8 w-8 mt-4 text-muted-foreground/50 hover:text-destructive">
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -428,7 +422,7 @@ export function SaleForm({
                   type="number"
                   min="0"
                   step="0.01"
-                  max={subtotal}
+                  max={parsedSoldPrice}
                   value={amountDue}
                   onChange={e => setAmountDue(e.target.value)}
                   placeholder="0.00"
@@ -439,13 +433,13 @@ export function SaleForm({
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-surface rounded-xl border border-border/40">
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Items</div>
-              <div className="font-mono text-sm">{lineItemDrafts.length}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Total Cost</div>
+              <div className="font-mono text-sm">{formatCurrency(totalCost, currency)}</div>
               <div className="text-xs text-muted-foreground">{totalUnits} units</div>
             </div>
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Bill Total</div>
-              <div className="font-mono text-sm font-semibold">{formatCurrency(subtotal, currency)}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Sold Price</div>
+              <div className="font-mono text-sm font-semibold">{formatCurrency(parsedSoldPrice, currency)}</div>
             </div>
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Expenses</div>

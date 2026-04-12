@@ -60,7 +60,7 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
             <Label htmlFor="currency" className="text-base font-medium">Currency</Label>
             <select
               id="currency"
-              className="flex h-11 w-full rounded-lg border border-border/60 bg-surface px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
+              className="flex h-11 w-full rounded-lg border border-border/60 bg-card px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
               value={config.currency}
               onChange={(e) => setConfig({ ...config, currency: e.target.value })}
             >

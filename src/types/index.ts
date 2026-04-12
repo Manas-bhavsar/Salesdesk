@@ -11,15 +11,16 @@ export type Variant = {
   name: string
   sellPrice: number
   costPrice: number
+  stockQuantity: number
 }
 
 export type Item = {
   id: string
   name: string
   category: string
-  sku: string
   sellPrice: number
   costPrice: number
+  stockQuantity: number
   hasVariants: boolean
   variants: Variant[]
   createdAt: number
@@ -33,11 +34,9 @@ export type SaleLineItem = {
   itemName: string
   category: string
   variant: string | null
-  sellPrice: number
   costPrice: number
   qty: number
-  total: number
-  profit: number
+  totalCost: number
 }
 
 export type SaleExpense = {
@@ -52,10 +51,8 @@ export type Sale = {
   itemName: string
   category: string
   variant: string | null
-  sellPrice: number
-  costPrice: number
-  qty: number
-  total: number
+  totalCost: number
+  totalSoldPrice: number
   profit: number
   date: string
   note: string
@@ -63,10 +60,9 @@ export type Sale = {
   paymentStatus: PaymentStatus
   amountDue: number
   createdAt: number
-  lineItems?: SaleLineItem[]
-  expenses?: SaleExpense[]
-  subtotal?: number
-  extraExpensesTotal?: number
+  lineItems: SaleLineItem[]
+  expenses: SaleExpense[]
+  extraExpensesTotal: number
 }
 
 export type ItemBreakdown = {

@@ -29,7 +29,7 @@ export function EditSaleModal({ sale, open, onOpenChange, onSuccess }: EditSaleM
           title="Edit Sale"
           submitLabel="Save changes"
           submitIcon="check"
-          accentClassName="bg-blue-500/15 text-blue-400"
+          accentClassName="bg-primary/15 text-primary"
           onOpenChange={onOpenChange}
           onSubmitSale={handleSubmit}
         />

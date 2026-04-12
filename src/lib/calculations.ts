@@ -25,7 +25,7 @@ export function getItemBreakdowns(_items: Item[], sales: Sale[]): ItemBreakdown[
           itemName: lineItem.itemName,
           category: lineItem.category,
           unitsSold: 0,
-          revenue: 0,
+          revenue: 0, // In bill-based, we don't know revenue per item, so we'll use totalCost as a proxy or just zero it out
           profit: 0,
           margin: 0,
         });
@@ -33,17 +33,12 @@ export function getItemBreakdowns(_items: Item[], sales: Sale[]): ItemBreakdown[
 
       const bd = breakdownMap.get(lineItem.itemId)!;
       bd.unitsSold += lineItem.qty;
-      bd.revenue += lineItem.total;
-      bd.profit += lineItem.profit;
+      bd.revenue += lineItem.totalCost; // This is actually cost now
     }
   }
 
-  const result = Array.from(breakdownMap.values()).map(bd => {
-    bd.margin = calcMargin(bd.profit, bd.revenue);
-    return bd;
-  });
-
-  return result.sort((a, b) => b.revenue - a.revenue);
+  const result = Array.from(breakdownMap.values());
+  return result.sort((a, b) => b.unitsSold - a.unitsSold);
 }
 
 export function formatCurrency(value: number, symbol: string): string {

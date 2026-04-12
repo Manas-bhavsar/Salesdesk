@@ -1,15 +1,18 @@
 import { useItemsStore } from "@/store/useItemsStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { AddItemForm } from "@/components/catalog/AddItemForm"
+import { ImportExcelModal } from "@/components/import/ImportExcelModal"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
 import { getCategoryColor } from "@/lib/utils"
-import { Trash2, PackageSearch, ArrowRight, ArrowLeft } from "lucide-react"
+import { Trash2, PackageSearch, ArrowRight, ArrowLeft, Upload } from "lucide-react"
+import { useState } from "react"
 
 export function CatalogStep({ onNext, onBack }: { onNext: () => void, onBack: () => void }) {
-  const { items, deleteItem } = useItemsStore()
+  const { items, deleteItem, setItems } = useItemsStore()
   const { currency, categories } = useStoreConfig(state => state.config)
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -19,6 +22,16 @@ export function CatalogStep({ onNext, onBack }: { onNext: () => void, onBack: ()
       </div>
 
       <AddItemForm />
+
+      {/* Import from Excel */}
+      <button
+        type="button"
+        onClick={() => setImportModalOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-border/40 rounded-xl text-sm text-muted-foreground hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all duration-200"
+      >
+        <Upload className="h-4 w-4" />
+        Import items from Excel
+      </button>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -51,15 +64,23 @@ export function CatalogStep({ onNext, onBack }: { onNext: () => void, onBack: ()
                   />
                   <div>
                     <div className="font-medium text-sm">{item.name}</div>
-                    <div className="text-xs text-muted-foreground">{item.category} {item.sku ? `• ${item.sku}` : ''}</div>
+                    <div className="text-xs text-muted-foreground">{item.category}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
                     {item.hasVariants ? (
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 font-mono border-blue-500/15 text-[11px]">{item.variants.length} variants</Badge>
+                      <div className="space-y-1">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary font-mono border-primary/15 text-[11px]">{item.variants.length} variants</Badge>
+                        <div className="text-[11px] text-muted-foreground">
+                          Qty {item.variants.reduce((sum, variant) => sum + variant.stockQuantity, 0)}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="font-mono text-sm">{formatCurrency(item.costPrice, currency)}</div>
+                      <div className="space-y-1">
+                        <div className="font-mono text-sm">{formatCurrency(item.costPrice, currency)}</div>
+                        <div className="text-[11px] text-muted-foreground">Qty {item.stockQuantity}</div>
+                      </div>
                     )}
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all duration-200">
@@ -82,6 +103,15 @@ export function CatalogStep({ onNext, onBack }: { onNext: () => void, onBack: ()
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
+
+      <ImportExcelModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        mode="items"
+        onImportItems={(imported) => {
+          setItems([...items, ...imported])
+        }}
+      />
     </div>
   )
 }

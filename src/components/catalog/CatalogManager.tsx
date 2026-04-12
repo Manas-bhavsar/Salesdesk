@@ -3,20 +3,22 @@ import { useItemsStore } from "@/store/useItemsStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { AddItemForm } from "./AddItemForm"
 import { EditItemModal } from "./EditItemModal"
+import { ImportExcelModal } from "@/components/import/ImportExcelModal"
 import { exportItemsCatalog } from "@/lib/exportExcel"
 import { useToast } from "@/components/ui/Toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
 import { getCategoryColor } from "@/lib/utils"
-import { Trash2, Download, Plus, Package, Pencil } from "lucide-react"
+import { Trash2, Download, Upload, Plus, Package, Pencil } from "lucide-react"
 import { Item } from "@/types"
 
 export function CatalogManager() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
-  const { items, deleteItem } = useItemsStore()
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const { items, deleteItem, setItems } = useItemsStore()
   const currency = useStoreConfig(state => state.config.currency)
   const categories = useStoreConfig(state => state.config.categories)
   const { toast } = useToast()
@@ -24,7 +26,7 @@ export function CatalogManager() {
   const handleExport = () => {
     if (items.length === 0) return
     exportItemsCatalog(items, currency)
-    toast("Catalog exported to Excel successfully")
+    toast("Catalog exported to Excel")
   }
 
   const handleDelete = (id: string) => {
@@ -53,6 +55,10 @@ export function CatalogManager() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportModalOpen(true)}>
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Import</span>
+          </Button>
           <Button variant="outline" onClick={handleExport} disabled={items.length === 0}>
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
@@ -80,15 +86,15 @@ export function CatalogManager() {
 
       {/* Table */}
       <div className="border border-border/40 rounded-2xl overflow-hidden bg-card/80 shadow-sm">
-        <div className="overflow-x-auto custom-scrollbar">
+        <div className="overflow-auto custom-scrollbar max-h-[520px]">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead>
-              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface/60 border-b border-border/40">
+            <thead className="sticky top-0 z-10">
+              <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface border-b border-border/40">
                 <th className="px-5 py-3.5 font-medium">Name</th>
                 <th className="px-5 py-3.5 font-medium">Category</th>
-                <th className="px-5 py-3.5 font-medium">SKU</th>
                 <th className="px-5 py-3.5 font-medium text-right">Sale Price</th>
                 <th className="px-5 py-3.5 font-medium text-right">Cost Price</th>
+                <th className="px-5 py-3.5 font-medium text-right">Inventory</th>
                 <th className="px-5 py-3.5 font-medium text-center">Variants</th>
                 <th className="px-5 py-3.5 font-medium text-center w-24"></th>
               </tr>
@@ -96,7 +102,7 @@ export function CatalogManager() {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center">
+                  <td colSpan={8} className="px-5 py-16 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                         <Package className="h-7 w-7 text-muted-foreground/50" />
@@ -122,16 +128,18 @@ export function CatalogManager() {
                       <span className="text-muted-foreground">{item.category}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground font-mono text-xs">{item.sku || "—"}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
                     <span className="text-muted-foreground/60 text-xs font-sans">Set on sale</span>
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">
                     {item.hasVariants ? <span className="text-muted-foreground/40">—</span> : formatCurrency(item.costPrice, currency)}
                   </td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums">
+                    {item.hasVariants ? item.variants.reduce((sum, variant) => sum + variant.stockQuantity, 0) : item.stockQuantity}
+                  </td>
                   <td className="px-5 py-3.5 text-center">
                     {item.hasVariants ? (
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/15 font-normal text-[11px]">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/15 font-normal text-[11px]">
                         {item.variants.length} variants
                       </Badge>
                     ) : (
@@ -144,7 +152,7 @@ export function CatalogManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(item)}
-                        className="h-7 w-7 text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        className="h-7 w-7 text-muted-foreground/40 hover:text-primary hover:bg-primary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -163,6 +171,11 @@ export function CatalogManager() {
             </tbody>
           </table>
         </div>
+        {items.length > 10 && (
+          <div className="px-5 py-2.5 border-t border-border/30 bg-surface/60 text-xs text-muted-foreground text-center">
+            Showing all {items.length} items · Scroll to see more
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}
@@ -171,6 +184,17 @@ export function CatalogManager() {
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         onSuccess={() => toast("Item updated successfully")}
+      />
+
+      {/* Import Modal */}
+      <ImportExcelModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        mode="items"
+        onImportItems={(imported) => {
+          setItems([...items, ...imported])
+          toast(`${imported.length} item${imported.length !== 1 ? 's' : ''} imported successfully`)
+        }}
       />
     </div>
   )

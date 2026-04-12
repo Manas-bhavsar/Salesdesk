@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { useSalesStore } from "@/store/useSalesStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
 import {
@@ -10,6 +9,7 @@ import {
 } from "recharts"
 import { BarChart3 } from "lucide-react"
 import { format, subMonths, eachMonthOfInterval, startOfMonth } from "date-fns"
+import { Sale } from "@/types"
 
 // Custom tooltip matching the app's dark theme
 function ChartTooltip({ active, payload, label, currency }: {
@@ -34,17 +34,20 @@ function ChartTooltip({ active, payload, label, currency }: {
   )
 }
 
-export function SalesProfitChart() {
-  const sales = useSalesStore(state => state.sales)
+export function SalesProfitChart({ sales }: { sales: Sale[] }) {
   const currency = useStoreConfig(state => state.config.currency)
 
   const chartData = useMemo(() => {
     if (sales.length === 0) return []
 
-    // Last 12 months
-    const now = new Date()
-    const start = startOfMonth(subMonths(now, 11))
-    const end = startOfMonth(now)
+    const sortedDates = sales
+      .map((sale) => new Date(`${sale.date}T12:00:00`))
+      .sort((left, right) => left.getTime() - right.getTime())
+
+    const latestMonth = startOfMonth(sortedDates[sortedDates.length - 1])
+    const earliestMonth = startOfMonth(sortedDates[0])
+    const start = earliestMonth > subMonths(latestMonth, 11) ? earliestMonth : startOfMonth(subMonths(latestMonth, 11))
+    const end = latestMonth
 
     const months = eachMonthOfInterval({ start, end })
 
@@ -59,7 +62,7 @@ export function SalesProfitChart() {
       const monthKey = sale.date.substring(0, 7) // "yyyy-MM"
       const entry = monthMap.get(monthKey)
       if (entry) {
-        entry.revenue += sale.total
+        entry.revenue += sale.totalSoldPrice
         entry.profit += sale.profit
       }
     }
@@ -83,21 +86,21 @@ export function SalesProfitChart() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-1">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-xl bg-amber-500/15 flex items-center justify-center">
-            <BarChart3 className="h-4 w-4 text-amber-400" />
+          <div className="h-8 w-8 rounded-xl bg-primary/15 flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-heading font-semibold">Revenue & Profit</h3>
-            <p className="text-[11px] text-muted-foreground">Last 6 months</p>
+            <h3 className="text-sm font-heading font-semibold">Sales over time</h3>
+            <p className="text-[11px] text-muted-foreground">Sales and profit by month</p>
           </div>
         </div>
         <div className="flex items-center gap-4 text-[11px]">
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-            <span className="text-muted-foreground">Revenue</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#2dd4bf]" />
+            <span className="text-muted-foreground">Sales</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#fbbf24]" />
             <span className="text-muted-foreground">Profit</span>
           </div>
         </div>
@@ -108,8 +111,8 @@ export function SalesProfitChart() {
         {!hasData ? (
           <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
             <BarChart3 className="h-10 w-10 text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-medium">No sales data yet</p>
-            <p className="text-xs text-muted-foreground/70">Record your first sale to see the chart</p>
+            <p className="text-sm font-medium">No sales to show yet</p>
+            <p className="text-xs text-muted-foreground/70">Add a sale to see this chart</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={260}>
@@ -143,15 +146,15 @@ export function SalesProfitChart() {
               <Legend content={() => null} />
               <Bar
                 dataKey="revenue"
-                name="Revenue"
-                fill="#e8b931"
+                name="Sales"
+                fill="#2dd4bf"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={24}
               />
               <Bar
                 dataKey="profit"
                 name="Profit"
-                fill="#34d399"
+                fill="#fbbf24"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={24}
               />
