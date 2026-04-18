@@ -2,7 +2,6 @@ import { AddSaleModal } from "@/components/sales/AddSaleModal"
 import { EditSaleModal } from "@/components/sales/EditSaleModal"
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal"
 import { StatCards } from "./StatCards"
-import { SalesProfitChart } from "./SalesProfitChart"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useMemo, useState } from "react"
@@ -182,7 +181,6 @@ export function Dashboard({ onOpenSales }: { onOpenSales: () => void }) {
         </div>
 
         <StatCards sales={sales} />
-        <SalesProfitChart sales={sales} />
       </section>
 
       {/* Last 5 Sales */}

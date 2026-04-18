@@ -1,5 +1,7 @@
 import { AppBackup, Item, Sale, StoreConfig } from "@/types"
-import { getItems, getSales, getStoreConfig, setItems, setSales, setStoreConfig } from "@/lib/localStorage"
+import { useStoreConfig } from "@/store/useStoreConfig"
+import { useItemsStore } from "@/store/useItemsStore"
+import { useSalesStore } from "@/store/useSalesStore"
 
 const fallbackStoreConfig: StoreConfig = {
   name: "",
@@ -33,12 +35,17 @@ function isSaleList(value: unknown): value is Sale[] {
 }
 
 export function createBackupData(): AppBackup {
+  // Read current data from Zustand stores (in-memory)
+  const storeConfig = useStoreConfig.getState().config
+  const items = useItemsStore.getState().items
+  const sales = useSalesStore.getState().sales
+
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
-    storeConfig: getStoreConfig() ?? fallbackStoreConfig,
-    items: getItems(),
-    sales: getSales(),
+    storeConfig: storeConfig ?? fallbackStoreConfig,
+    items,
+    sales,
   }
 }
 
@@ -97,10 +104,4 @@ export function parseBackupFileContent(content: string): AppBackup {
     items: backup.items,
     sales: backup.sales,
   }
-}
-
-export function restoreBackupData(backup: AppBackup): void {
-  setStoreConfig(backup.storeConfig)
-  setItems(backup.items)
-  setSales(backup.sales)
 }

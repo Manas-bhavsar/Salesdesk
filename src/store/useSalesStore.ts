@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Sale } from '@/types'
-import { getSales, setSales as persistSales } from '@/lib/localStorage'
+import { addSaleAction, updateSaleAction, deleteSaleAction, setSalesAction } from '@/actions/sales'
 
 type SalesState = {
   sales: Sale[]
@@ -14,27 +14,25 @@ type SalesState = {
   getSalesByDateRange: (start: string, end: string) => Sale[]
 }
 
-const initialSales = typeof window !== 'undefined' ? getSales() : []
-
 export const useSalesStore = create<SalesState>()((set, get) => ({
-  sales: initialSales,
+  sales: [],
   addSale: (sale) => set((state) => {
     const newSales = [...state.sales, sale]
-    persistSales(newSales)
+    addSaleAction(sale)
     return { sales: newSales }
   }),
   updateSale: (id, updated) => set((state) => {
     const newSales = state.sales.map(s => s.id === id ? updated : s)
-    persistSales(newSales)
+    updateSaleAction(id, updated)
     return { sales: newSales }
   }),
   deleteSale: (id) => set((state) => {
     const newSales = state.sales.filter(s => s.id !== id)
-    persistSales(newSales)
+    deleteSaleAction(id)
     return { sales: newSales }
   }),
   setSales: (sales) => {
-    persistSales(sales)
+    setSalesAction(sales)
     set({ sales })
   },
   getTotalRevenue: () => get().sales.reduce((sum, sale) => sum + sale.totalSoldPrice, 0),

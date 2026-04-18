@@ -26,8 +26,10 @@ export function ItemBreakdownTable({ sales }: { sales: Sale[] }) {
     )
   }
 
-  const totalCost = breakdown.reduce((sum, item) => sum + item.revenue, 0) // revenue field holds cost in new system
+  const totalRevenue = breakdown.reduce((sum, item) => sum + item.revenue, 0)
+  const totalProfit = breakdown.reduce((sum, item) => sum + item.profit, 0)
   const totalUnits = breakdown.reduce((sum, item) => sum + item.unitsSold, 0)
+  const totalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
 
   return (
     <div className="space-y-3 animate-in fade-in duration-500">
@@ -45,9 +47,10 @@ export function ItemBreakdownTable({ sales }: { sales: Sale[] }) {
             <thead className="sticky top-0 z-10">
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface border-b border-border/40">
                 <th className="px-5 py-3.5 font-medium">Item</th>
-                <th className="px-5 py-3.5 font-medium">Category</th>
-                <th className="px-5 py-3.5 font-medium text-right">Units Sold</th>
-                <th className="px-5 py-3.5 font-medium text-right">Total Cost</th>
+                <th className="px-5 py-3.5 font-medium text-right">Units</th>
+                <th className="px-5 py-3.5 font-medium text-right">Revenue</th>
+                <th className="px-5 py-3.5 font-medium text-right">Profit</th>
+                <th className="px-5 py-3.5 font-medium text-right">Margin</th>
               </tr>
             </thead>
             <tbody>
@@ -57,18 +60,26 @@ export function ItemBreakdownTable({ sales }: { sales: Sale[] }) {
                   className="border-b border-border/20 hover:bg-surface-hover/50 transition-colors last:border-b-0 table-row-animate"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <td className="px-5 py-3.5 font-medium">{item.itemName}</td>
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-2 h-2 rounded-full shadow-sm shrink-0"
-                        style={{ backgroundColor: getCategoryColor(item.category, categories) }}
-                      />
-                      <span className="truncate max-w-[120px] text-muted-foreground">{item.category}</span>
+                    <div className="space-y-1">
+                      <div className="font-medium">{item.itemName}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <div 
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: getCategoryColor(item.category, categories) }}
+                        />
+                        {item.category}
+                      </div>
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">{item.unitsSold}</td>
                   <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(item.revenue, currency)}</td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums font-medium text-emerald-400">
+                    {formatCurrency(item.profit, currency)}
+                  </td>
+                  <td className="px-5 py-3.5 text-right font-mono tabular-nums text-xs">
+                    {item.margin.toFixed(1)}%
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -80,9 +91,10 @@ export function ItemBreakdownTable({ sales }: { sales: Sale[] }) {
             <tfoot>
               <tr className="bg-surface/60 font-medium">
                 <td className="px-5 py-3.5 text-muted-foreground uppercase text-xs tracking-wider">Total</td>
-                <td className="px-5 py-3.5"></td>
                 <td className="px-5 py-3.5 text-right font-mono tabular-nums">{totalUnits}</td>
-                <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(totalCost, currency)}</td>
+                <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(totalRevenue, currency)}</td>
+                <td className="px-5 py-3.5 text-right font-mono tabular-nums text-emerald-400">{formatCurrency(totalProfit, currency)}</td>
+                <td className="px-5 py-3.5 text-right font-mono tabular-nums text-xs">{totalMargin.toFixed(1)}%</td>
               </tr>
             </tfoot>
           </table>

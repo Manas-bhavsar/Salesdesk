@@ -324,6 +324,7 @@ export function mapRowsToSales(
       category: resolvedCategory,
       variant,
       costPrice,
+      sellPrice: totalSoldPrice / qty,
       qty,
       totalCost
     }]

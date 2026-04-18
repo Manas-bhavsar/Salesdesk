@@ -1,4 +1,4 @@
-import { Item, Sale, ItemBreakdown } from "@/types";
+import { Item, Sale, ItemBreakdown, SaleLineItem } from "@/types";
 import { getSaleLineItems } from "@/lib/sales";
 
 export function calcTotal(sellPrice: number, qty: number): number {
@@ -18,14 +18,15 @@ export function getItemBreakdowns(_items: Item[], sales: Sale[]): ItemBreakdown[
   const breakdownMap = new Map<string, ItemBreakdown>();
 
   for (const sale of sales) {
-    for (const lineItem of getSaleLineItems(sale)) {
+    const lineItems = getSaleLineItems(sale);
+    for (const lineItem of lineItems) {
       if (!breakdownMap.has(lineItem.itemId)) {
         breakdownMap.set(lineItem.itemId, {
           itemId: lineItem.itemId,
           itemName: lineItem.itemName,
           category: lineItem.category,
           unitsSold: 0,
-          revenue: 0, // In bill-based, we don't know revenue per item, so we'll use totalCost as a proxy or just zero it out
+          revenue: 0,
           profit: 0,
           margin: 0,
         });
@@ -33,11 +34,26 @@ export function getItemBreakdowns(_items: Item[], sales: Sale[]): ItemBreakdown[
 
       const bd = breakdownMap.get(lineItem.itemId)!;
       bd.unitsSold += lineItem.qty;
-      bd.revenue += lineItem.totalCost; // This is actually cost now
+
+      // Handle potentially missing sellPrice in legacy sales data
+      const sellPrice = (lineItem as SaleLineItem).sellPrice || 
+        (sale.lineItems.length === 1 ? sale.totalSoldPrice / lineItem.qty : lineItem.costPrice);
+
+      const itemRevenue = sellPrice * lineItem.qty;
+      const itemCost = lineItem.totalCost;
+      
+      bd.revenue += itemRevenue;
+      bd.profit += (itemRevenue - itemCost);
     }
   }
 
-  const result = Array.from(breakdownMap.values());
+  const result = Array.from(breakdownMap.values()).map(bd => {
+    if (bd.revenue > 0) {
+      bd.margin = (bd.profit / bd.revenue) * 100;
+    }
+    return bd;
+  });
+
   return result.sort((a, b) => b.unitsSold - a.unitsSold);
 }
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { StoreConfig } from '@/types'
-import { getStoreConfig, setStoreConfig } from '@/lib/localStorage'
+import { updateStoreConfigAction } from '@/actions/storeConfig'
 
 type StoreConfigState = {
   config: StoreConfig
@@ -17,23 +17,18 @@ const defaultConfig: StoreConfig = {
   setupComplete: false
 }
 
-// Hydrate on creation but we might need to handle SSR safely. 
-// Since this is generic client state, localstorage getter works fine if used client-side.
-const initialConfig = typeof window !== 'undefined' ? (getStoreConfig() || defaultConfig) : defaultConfig;
-
 export const useStoreConfig = create<StoreConfigState>()((set) => ({
-  config: initialConfig,
+  config: defaultConfig,
   setConfig: (config) => {
-    setStoreConfig(config)
     set({ config })
+    updateStoreConfigAction(config)
   },
   updateCategories: (categories) => set((state) => {
     const newConfig = { ...state.config, categories }
-    setStoreConfig(newConfig)
+    updateStoreConfigAction(newConfig)
     return { config: newConfig }
   }),
   resetStore: () => {
-    setStoreConfig(defaultConfig)
     set({ config: defaultConfig })
   }
 }))

@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model StoreConfig {
+  id            String   @id @default("default")
+  name          String   @default("")
+  owner         String   @default("")
+  currency      String   @default("₹")
+  categories    String[] @default(["Electronics", "Clothing", "Food", "Books", "Accessories", "Other"])
+  setupComplete Boolean  @default(false)
+}
+
+model Item {
+  id            String    @id @default(uuid())
+  name          String
+  category      String
+  sellPrice     Float     @default(0)
+  costPrice     Float     @default(0)
+  stockQuantity Int       @default(0)
+  hasVariants   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  variants      Variant[]
+}
+
+model Variant {
+  id            String @id @default(uuid())
+  name          String
+  sellPrice     Float  @default(0)
+  costPrice     Float  @default(0)
+  stockQuantity Int    @default(0)
+  item          Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String
+}
+
+model Sale {
+  id                 String         @id @default(uuid())
+  itemId             String
+  itemName           String
+  category           String
+  variant            String?
+  totalCost          Float          @default(0)
+  totalSoldPrice     Float          @default(0)
+  profit             Float          @default(0)
+  date               String
+  note               String         @default("")
+  customerName       String         @default("")
+  paymentStatus      String         @default("paid")
+  amountDue          Float          @default(0)
+  extraExpensesTotal Float          @default(0)
+  createdAt          DateTime       @default(now())
+  lineItems          SaleLineItem[]
+  expenses           SaleExpense[]
+}
+
+model SaleLineItem {
+  id        String  @id @default(uuid())
+  itemId    String
+  itemName  String
+  category  String
+  variant   String?
+  costPrice Float   @default(0)
+  sellPrice Float   @default(0)
+  qty       Int     @default(0)
+  totalCost Float   @default(0)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId    String
+}
+
+model SaleExpense {
+  id     String @id @default(uuid())
+  label  String
+  amount Float  @default(0)
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId String
+}

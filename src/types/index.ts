@@ -35,6 +35,7 @@ export type SaleLineItem = {
   category: string
   variant: string | null
   costPrice: number
+  sellPrice: number
   qty: number
   totalCost: number
 }

@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { useItemsStore } from "@/store/useItemsStore"
 import { useSalesStore } from "@/store/useSalesStore"
-import { clearAllData } from "@/lib/localStorage"
-import { downloadBackup, parseBackupFileContent, restoreBackupData } from "@/lib/backup"
+import { resetStoreConfigAction, updateStoreConfigAction } from "@/actions/storeConfig"
+import { setItemsAction } from "@/actions/items"
+import { setSalesAction } from "@/actions/sales"
+import { downloadBackup, parseBackupFileContent } from "@/lib/backup"
 import { AppTheme, applyTheme, getStoredTheme, setStoredTheme } from "@/lib/theme"
 import { useToast } from "@/components/ui/Toast"
 import type { TabType } from "./AppShell"
@@ -26,12 +28,19 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
     applyTheme(storedTheme)
   }, [])
 
-  const handleReset = () => {
-    clearAllData()
-    resetStore()
-    setItems([])
-    setSales([])
-    window.location.reload()
+  const handleReset = async () => {
+    try {
+      await resetStoreConfigAction()
+      await setItemsAction([])
+      await setSalesAction([])
+      resetStore()
+      useItemsStore.setState({ items: [] })
+      useSalesStore.setState({ sales: [] })
+      window.location.reload()
+    } catch (error) {
+      console.error("Reset failed:", error)
+      toast("Failed to reset store data", "error")
+    }
   }
 
   const handleBackup = () => {
@@ -52,10 +61,15 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
       const content = await file.text()
       const backup = parseBackupFileContent(content)
 
-      restoreBackupData(backup)
-      setConfig(backup.storeConfig)
-      setItems(backup.items)
-      setSales(backup.sales)
+      // Persist to database first
+      await updateStoreConfigAction(backup.storeConfig)
+      await setItemsAction(backup.items)
+      await setSalesAction(backup.sales)
+
+      // Then update Zustand stores
+      useStoreConfig.setState({ config: backup.storeConfig })
+      useItemsStore.setState({ items: backup.items })
+      useSalesStore.setState({ sales: backup.sales })
       toast("Backup imported successfully")
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to import backup"

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Item } from '@/types'
-import { getItems, normalizeItems, setItems as persistItems } from '@/lib/localStorage'
+import { addItemAction, updateItemAction, deleteItemAction, setItemsAction } from '@/actions/items'
 
 type ItemsState = {
   items: Item[]
@@ -10,28 +10,25 @@ type ItemsState = {
   setItems: (items: Item[]) => void
 }
 
-const initialItems = typeof window !== 'undefined' ? getItems() : []
-
 export const useItemsStore = create<ItemsState>()((set) => ({
-  items: initialItems,
+  items: [],
   addItem: (item) => set((state) => {
-    const newItems = normalizeItems([...state.items, item])
-    persistItems(newItems)
+    const newItems = [...state.items, item]
+    addItemAction(item)
     return { items: newItems }
   }),
   updateItem: (id, updated) => set((state) => {
-    const newItems = normalizeItems(state.items.map(i => i.id === id ? updated : i))
-    persistItems(newItems)
+    const newItems = state.items.map(i => i.id === id ? updated : i)
+    updateItemAction(id, updated)
     return { items: newItems }
   }),
   deleteItem: (id) => set((state) => {
     const newItems = state.items.filter(i => i.id !== id)
-    persistItems(newItems)
+    deleteItemAction(id)
     return { items: newItems }
   }),
   setItems: (items) => {
-    const normalizedItems = normalizeItems(items)
-    persistItems(normalizedItems)
-    set({ items: normalizedItems })
+    setItemsAction(items)
+    set({ items })
   }
 }))
