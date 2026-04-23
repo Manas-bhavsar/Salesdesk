@@ -7,23 +7,31 @@ import { Badge } from "@/components/ui/badge"
 import { X, Plus, ArrowRight } from "lucide-react"
 
 export function StoreInfoStep({ onNext }: { onNext: () => void }) {
-  const { config, setConfig, updateCategories } = useStoreConfig()
+  const { config, setConfig } = useStoreConfig()
+  const [localConfig, setLocalConfig] = useState(config)
   const [newCat, setNewCat] = useState("")
 
   const handleNext = () => {
-    if (!config.name.trim()) return
+    if (!localConfig.name.trim()) return
+    setConfig(localConfig)
     onNext()
   }
 
   const addCategory = () => {
-    if (newCat.trim() && !config.categories.includes(newCat.trim())) {
-      updateCategories([...config.categories, newCat.trim()])
+    if (newCat.trim() && !localConfig.categories.includes(newCat.trim())) {
+      setLocalConfig({
+        ...localConfig,
+        categories: [...localConfig.categories, newCat.trim()]
+      })
       setNewCat("")
     }
   }
 
   const removeCategory = (cat: string) => {
-    updateCategories(config.categories.filter((c) => c !== cat))
+    setLocalConfig({
+      ...localConfig,
+      categories: localConfig.categories.filter((c) => c !== cat)
+    })
   }
 
   return (
@@ -36,8 +44,8 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
           <Input
             id="storeName"
             placeholder="e.g. Acme Electronics"
-            value={config.name}
-            onChange={(e) => setConfig({ ...config, name: e.target.value })}
+            value={localConfig.name}
+            onChange={(e) => setLocalConfig({ ...localConfig, name: e.target.value })}
             className="h-12 text-lg"
             autoFocus
           />
@@ -51,8 +59,8 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
             <Input
               id="ownerName"
               placeholder="e.g. John Doe"
-              value={config.owner}
-              onChange={(e) => setConfig({ ...config, owner: e.target.value })}
+              value={localConfig.owner}
+              onChange={(e) => setLocalConfig({ ...localConfig, owner: e.target.value })}
               className="h-11"
             />
           </div>
@@ -61,8 +69,8 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
             <select
               id="currency"
               className="flex h-11 w-full rounded-lg border border-border/60 bg-card px-3.5 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-primary/50 hover:border-border"
-              value={config.currency}
-              onChange={(e) => setConfig({ ...config, currency: e.target.value })}
+              value={localConfig.currency}
+              onChange={(e) => setLocalConfig({ ...localConfig, currency: e.target.value })}
             >
               <option value="₹">₹ (INR)</option>
               <option value="$">$ (USD)</option>
@@ -76,7 +84,7 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
         <div className="space-y-4 pt-5 border-t border-border/30">
           <Label className="text-base font-medium">Product Categories</Label>
           <div className="flex flex-wrap gap-2">
-            {config.categories.map((cat) => (
+            {localConfig.categories.map((cat) => (
               <Badge key={cat} variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-surface border-border/40">
                 {cat}
                 <button
@@ -104,7 +112,7 @@ export function StoreInfoStep({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="flex justify-end pt-6">
-        <Button onClick={handleNext} disabled={!config.name.trim()} size="lg" className="font-bold px-8">
+        <Button onClick={handleNext} disabled={!localConfig.name.trim()} size="lg" className="font-bold px-8">
           Continue to Catalog
           <ArrowRight className="h-4 w-4" />
         </Button>

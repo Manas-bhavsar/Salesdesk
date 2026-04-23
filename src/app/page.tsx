@@ -16,7 +16,7 @@ export default function Home() {
   const setItems = useItemsStore(state => state.setItems)
   const setSales = useSalesStore(state => state.setSales)
 
-  // Hydrate Zustand stores from the database on mount
+  // Hydrate Zustand stores from the database
   useEffect(() => {
     async function hydrate() {
       try {
@@ -26,10 +26,21 @@ export default function Home() {
           getSalesAction(),
         ])
 
-        // Use direct store set to avoid triggering Server Actions back
-        useStoreConfig.setState({ config })
-        useItemsStore.setState({ items })
-        useSalesStore.setState({ sales })
+        // Use deep compare to avoid unnecessary re-renders
+        const currentConfig = useStoreConfig.getState().config;
+        if (JSON.stringify(currentConfig) !== JSON.stringify(config)) {
+          useStoreConfig.setState({ config })
+        }
+
+        const currentItems = useItemsStore.getState().items;
+        if (JSON.stringify(currentItems) !== JSON.stringify(items)) {
+          useItemsStore.setState({ items })
+        }
+
+        const currentSales = useSalesStore.getState().sales;
+        if (JSON.stringify(currentSales) !== JSON.stringify(sales)) {
+          useSalesStore.setState({ sales })
+        }
       } catch (error) {
         console.error("[SalesDesk] Failed to hydrate from database:", error)
       } finally {
@@ -38,6 +49,10 @@ export default function Home() {
     }
 
     hydrate()
+    
+    // Poll every 5 seconds to keep multiple devices in sync
+    const interval = setInterval(hydrate, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   if (!hydrated) {
