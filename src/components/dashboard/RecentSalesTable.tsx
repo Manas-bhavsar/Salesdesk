@@ -119,6 +119,7 @@ export function RecentSalesTable({
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="sticky top-0 z-10">
               <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface border-b border-border/40">
+                <th className="px-5 py-3.5 font-medium">Customer</th>
                 <th className="px-5 py-3.5 font-medium">Date</th>
                 <th className="px-5 py-3.5 font-medium">Items</th>
                 <th className="px-5 py-3.5 font-medium text-right">Units</th>
@@ -126,7 +127,6 @@ export function RecentSalesTable({
                 <th className="px-5 py-3.5 font-medium text-right">Expenses</th>
                 <th className="px-5 py-3.5 font-medium text-right">Profit</th>
                 <th className="px-5 py-3.5 font-medium">Status</th>
-                <th className="px-5 py-3.5 font-medium">Customer</th>
                 <th className="px-5 py-3.5 font-medium text-center w-20"></th>
               </tr>
             </thead>
@@ -138,6 +138,9 @@ export function RecentSalesTable({
                   style={{ animationDelay: `${i * 35}ms` }}
                   onClick={() => handleOpenDetails(sale)}
                 >
+                  <td className="px-5 py-3.5 font-medium max-w-[140px] truncate" title={sale.customerName || ""}>
+                    {sale.customerName || <span className="text-muted-foreground/40">—</span>}
+                  </td>
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {format(new Date(sale.date + 'T12:00:00'), 'MMM d, yyyy')}
                   </td>
@@ -152,9 +155,6 @@ export function RecentSalesTable({
                   </td>
                   <td className="px-5 py-3.5">
                     <PaymentBadge sale={sale} onMarkPaid={handleMarkPaid} />
-                  </td>
-                  <td className="px-5 py-3.5 text-muted-foreground max-w-[140px] truncate" title={sale.customerName || ""}>
-                    {sale.customerName || <span className="text-muted-foreground/40">—</span>}
                   </td>
                   <td className="px-5 py-3.5 text-center">
                     <div className="flex items-center justify-center gap-1">

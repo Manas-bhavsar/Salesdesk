@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast"
 import type { TabType } from "./AppShell"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { RotateCcw, LayoutDashboard, Tags, Sparkles, Download, Upload, ListOrdered, Moon, Sun, Archive } from "lucide-react"
+import { RotateCcw, LayoutDashboard, Tags, Sparkles, Download, Upload, ListOrdered, Moon, Sun } from "lucide-react"
 
 export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabChange: (t: TabType) => void }) {
   const { config, resetStore } = useStoreConfig()
@@ -125,17 +125,6 @@ export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabCh
           >
             <ListOrdered className="h-4 w-4" />
             <span className="hidden sm:inline">Sales</span>
-          </button>
-          <button
-            onClick={() => onTabChange("inventory")}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === "inventory"
-                ? "bg-primary/15 text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-            }`}
-          >
-            <Archive className="h-4 w-4" />
-            <span className="hidden sm:inline">Inventory</span>
           </button>
           <button
             onClick={() => onTabChange("catalog")}

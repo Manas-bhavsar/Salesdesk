@@ -61,6 +61,7 @@ export function exportSalesData(sales: Sale[], currency: string): void {
   let data = sales.map(sale => {
     const expenses = getSaleExpenses(sale)
     return {
+      "Customer": sale.customerName || "",
       "Date": sale.date,
       "Items": getSaleItemsSummary(sale),
       "Categories": Array.from(new Set(getSaleLineItems(sale).map(line => line.category))).join(" | "),
@@ -74,7 +75,6 @@ export function exportSalesData(sales: Sale[], currency: string): void {
       "Profit": sale.profit,
       "Payment Status": sale.paymentStatus || "paid",
       "Amount Due": sale.amountDue || 0,
-      "Customer": sale.customerName || "",
       "Note": sale.note || ""
     }
   })
