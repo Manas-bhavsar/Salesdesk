@@ -1,4 +1,3 @@
-import * as xlsx from "xlsx"
 import { Item, Sale, Variant, SaleLineItem } from "@/types"
 
 // ─── Types ───
@@ -15,6 +14,7 @@ export type ColumnMapping = Record<string, string | null> // targetField -> head
 // ─── Parse workbook from File ───
 
 export async function parseWorkbook(file: File): Promise<ParsedWorkbook> {
+  const xlsx = await import("xlsx")
   const buffer = await file.arrayBuffer()
   const wb = xlsx.read(buffer, { type: "array", cellDates: true })
 

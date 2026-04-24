@@ -1,10 +1,10 @@
-import * as xlsx from "xlsx"
 import { Item, Sale } from "@/types"
 import { format } from "date-fns"
 import { getSaleExpenses, getSaleExpensesTotal, getSaleItemsSummary, getSaleLineItems, getSaleTotalUnits, getSaleVariantSummary } from "@/lib/sales"
 
-export function exportItemsCatalog(items: Item[], currency: string): void {
+export async function exportItemsCatalog(items: Item[], currency: string): Promise<void> {
   void currency
+  const xlsx = await import("xlsx")
   let data = items.map(item => {
     return {
       "Item Name": item.name,
@@ -56,8 +56,9 @@ export function exportItemsCatalog(items: Item[], currency: string): void {
   xlsx.writeFile(wb, `catalog_export_${dateStr}.xlsx`)
 }
 
-export function exportSalesData(sales: Sale[], currency: string): void {
+export async function exportSalesData(sales: Sale[], currency: string): Promise<void> {
   void currency
+  const xlsx = await import("xlsx")
   let data = sales.map(sale => {
     const expenses = getSaleExpenses(sale)
     return {

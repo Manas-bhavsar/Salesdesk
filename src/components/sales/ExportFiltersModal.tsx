@@ -88,11 +88,15 @@ export function ExportFiltersModal({ open, onOpenChange, onSuccess, initialFilte
     customerQuery: customerSearch,
   })
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (filteredSales.length === 0) return
-    exportSalesData(filteredSales, currency)
-    onOpenChange(false)
-    if (onSuccess) onSuccess()
+    try {
+      await exportSalesData(filteredSales, currency)
+      onOpenChange(false)
+      if (onSuccess) onSuccess()
+    } catch (error) {
+      console.error("Sales export failed:", error)
+    }
   }
 
   return (

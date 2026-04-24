@@ -1,17 +1,9 @@
 import { useState } from "react"
 import { Topbar } from "./Topbar"
-import dynamic from "next/dynamic"
 import { ToastProvider } from "@/components/ui/Toast"
-
-const Dashboard = dynamic(() => import("@/components/dashboard/Dashboard").then(m => ({ default: m.Dashboard })), { 
-  loading: () => <div className="flex justify-center items-center h-64 text-muted-foreground animate-pulse">Loading dashboard...</div>
-})
-const SalesDetailsDashboard = dynamic(() => import("@/components/dashboard/SalesDetailsDashboard").then(m => ({ default: m.SalesDetailsDashboard })), { 
-  loading: () => <div className="flex justify-center items-center h-64 text-muted-foreground animate-pulse">Loading sales...</div>
-})
-const CatalogManager = dynamic(() => import("@/components/catalog/CatalogManager").then(m => ({ default: m.CatalogManager })), { 
-  loading: () => <div className="flex justify-center items-center h-64 text-muted-foreground animate-pulse">Loading catalog...</div>
-})
+import { Dashboard } from "@/components/dashboard/Dashboard"
+import { SalesDetailsDashboard } from "@/components/dashboard/SalesDetailsDashboard"
+import { CatalogManager } from "@/components/catalog/CatalogManager"
 
 export type TabType = "dashboard" | "sales" | "catalog"
 

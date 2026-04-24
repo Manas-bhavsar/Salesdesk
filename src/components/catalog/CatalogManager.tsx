@@ -23,10 +23,15 @@ export function CatalogManager() {
   const categories = useStoreConfig(state => state.config.categories)
   const { toast } = useToast()
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (items.length === 0) return
-    exportItemsCatalog(items, currency)
-    toast("Catalog exported to Excel")
+    try {
+      await exportItemsCatalog(items, currency)
+      toast("Catalog exported to Excel")
+    } catch (error) {
+      console.error("Catalog export failed:", error)
+      toast("Failed to export catalog", "error")
+    }
   }
 
   const handleDelete = (id: string) => {

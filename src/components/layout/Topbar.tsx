@@ -15,9 +15,6 @@ import { RotateCcw, LayoutDashboard, Tags, Sparkles, Download, Upload, ListOrder
 
 export function Topbar({ activeTab, onTabChange }: { activeTab: TabType, onTabChange: (t: TabType) => void }) {
   const { config, resetStore } = useStoreConfig()
-  const setConfig = useStoreConfig(state => state.setConfig)
-  const setItems = useItemsStore(state => state.setItems)
-  const setSales = useSalesStore(state => state.setSales)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [theme, setTheme] = useState<AppTheme>("dark")
   const { toast } = useToast()

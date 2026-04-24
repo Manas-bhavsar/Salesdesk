@@ -12,12 +12,11 @@ import { getSalesAction } from "@/actions/sales"
 export default function Home() {
   const [hydrated, setHydrated] = useState(false)
   const setupComplete = useStoreConfig(state => state.config.setupComplete)
-  const setConfig = useStoreConfig(state => state.setConfig)
-  const setItems = useItemsStore(state => state.setItems)
-  const setSales = useSalesStore(state => state.setSales)
 
-  // Hydrate Zustand stores from the database
+  // Bootstrap client stores from the database once on mount.
   useEffect(() => {
+    let cancelled = false
+
     async function hydrate() {
       try {
         const [config, items, sales] = await Promise.all([
@@ -26,33 +25,25 @@ export default function Home() {
           getSalesAction(),
         ])
 
-        // Use deep compare to avoid unnecessary re-renders
-        const currentConfig = useStoreConfig.getState().config;
-        if (JSON.stringify(currentConfig) !== JSON.stringify(config)) {
-          useStoreConfig.setState({ config })
-        }
+        if (cancelled) return
 
-        const currentItems = useItemsStore.getState().items;
-        if (JSON.stringify(currentItems) !== JSON.stringify(items)) {
-          useItemsStore.setState({ items })
-        }
-
-        const currentSales = useSalesStore.getState().sales;
-        if (JSON.stringify(currentSales) !== JSON.stringify(sales)) {
-          useSalesStore.setState({ sales })
-        }
+        useStoreConfig.setState({ config })
+        useItemsStore.setState({ items })
+        useSalesStore.setState({ sales })
       } catch (error) {
         console.error("[SalesDesk] Failed to hydrate from database:", error)
       } finally {
-        setHydrated(true)
+        if (!cancelled) {
+          setHydrated(true)
+        }
       }
     }
 
     hydrate()
-    
-    // Poll every 5 seconds to keep multiple devices in sync
-    const interval = setInterval(hydrate, 5000)
-    return () => clearInterval(interval)
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (!hydrated) {
