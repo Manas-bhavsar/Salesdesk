@@ -37,6 +37,12 @@ type DbSaleRow = {
     label: string
     amount: number
   }[]
+  paymentRecords: {
+    id: string
+    amount: number
+    date: string
+    note: string
+  }[]
 }
 
 function dbSaleToSale(row: DbSaleRow): Sale {
@@ -72,6 +78,12 @@ function dbSaleToSale(row: DbSaleRow): Sale {
       label: e.label,
       amount: e.amount,
     })),
+    paymentRecords: row.paymentRecords.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      date: p.date,
+      note: p.note,
+    })),
   }
 }
 
@@ -79,7 +91,7 @@ function dbSaleToSale(row: DbSaleRow): Sale {
 
 export async function getSalesAction(): Promise<Sale[]> {
   const rows = await prisma.sale.findMany({
-    include: { lineItems: true, expenses: true },
+    include: { lineItems: true, expenses: true, paymentRecords: true },
     orderBy: { createdAt: "asc" },
   })
 
@@ -124,8 +136,16 @@ export async function addSaleAction(sale: Sale): Promise<Sale> {
           amount: e.amount,
         })),
       },
+      paymentRecords: {
+        create: (sale.paymentRecords || []).map((p) => ({
+          id: p.id,
+          amount: p.amount,
+          date: p.date,
+          note: p.note,
+        })),
+      },
     },
-    include: { lineItems: true, expenses: true },
+    include: { lineItems: true, expenses: true, paymentRecords: true },
   })
 
   return dbSaleToSale(row)
@@ -135,6 +155,7 @@ export async function updateSaleAction(id: string, sale: Sale): Promise<Sale> {
   // Delete old nested records and replace
   await prisma.saleLineItem.deleteMany({ where: { saleId: id } })
   await prisma.saleExpense.deleteMany({ where: { saleId: id } })
+  await prisma.paymentRecord.deleteMany({ where: { saleId: id } })
 
   const row = await prisma.sale.update({
     where: { id },
@@ -172,8 +193,16 @@ export async function updateSaleAction(id: string, sale: Sale): Promise<Sale> {
           amount: e.amount,
         })),
       },
+      paymentRecords: {
+        create: (sale.paymentRecords || []).map((p) => ({
+          id: p.id,
+          amount: p.amount,
+          date: p.date,
+          note: p.note,
+        })),
+      },
     },
-    include: { lineItems: true, expenses: true },
+    include: { lineItems: true, expenses: true, paymentRecords: true },
   })
 
   return dbSaleToSale(row)
@@ -188,6 +217,7 @@ export async function setSalesAction(sales: Sale[]): Promise<Sale[]> {
   await prisma.$transaction(async (tx) => {
     await tx.saleLineItem.deleteMany()
     await tx.saleExpense.deleteMany()
+    await tx.paymentRecord.deleteMany()
     await tx.sale.deleteMany()
 
     for (const sale of sales) {
@@ -226,6 +256,14 @@ export async function setSalesAction(sales: Sale[]): Promise<Sale[]> {
               id: e.id,
               label: e.label,
               amount: e.amount,
+            })),
+          },
+          paymentRecords: {
+            create: (sale.paymentRecords || []).map((p) => ({
+              id: p.id,
+              amount: p.amount,
+              date: p.date,
+              note: p.note,
             })),
           },
         },

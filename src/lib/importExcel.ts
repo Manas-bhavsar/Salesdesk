@@ -346,7 +346,8 @@ export function mapRowsToSales(
       createdAt: Date.now(),
       lineItems,
       expenses: [],
-      extraExpensesTotal: 0
+      extraExpensesTotal: 0,
+      paymentRecords: [],
     })
   }
 

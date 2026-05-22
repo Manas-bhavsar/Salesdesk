@@ -56,6 +56,17 @@ model Sale {
   createdAt          DateTime       @default(now())
   lineItems          SaleLineItem[]
   expenses           SaleExpense[]
+  paymentRecords     PaymentRecord[]
+}
+
+model PaymentRecord {
+  id        String   @id @default(uuid())
+  amount    Float
+  date      String
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId    String
 }
 
 model SaleLineItem {

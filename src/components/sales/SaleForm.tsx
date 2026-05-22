@@ -228,6 +228,7 @@ export function SaleForm({
       lineItems,
       expenses: validExpenses,
       extraExpensesTotal,
+      paymentRecords: sale?.paymentRecords ?? [],
     })
   }
 

@@ -28,6 +28,13 @@ export type Item = {
 
 export type PaymentStatus = 'paid' | 'unpaid' | 'half-paid'
 
+export type PaymentRecord = {
+  id: string
+  amount: number
+  date: string
+  note: string
+}
+
 export type SaleLineItem = {
   id: string
   itemId: string
@@ -64,6 +71,7 @@ export type Sale = {
   lineItems: SaleLineItem[]
   expenses: SaleExpense[]
   extraExpensesTotal: number
+  paymentRecords: PaymentRecord[]
 }
 
 export type ItemBreakdown = {
