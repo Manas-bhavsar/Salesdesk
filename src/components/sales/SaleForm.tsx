@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from "react"
 import { format } from "date-fns"
-import { ArrowRight, Check, CreditCard, Package2, Plus, Receipt, Trash2, User, Wallet, Calculator } from "lucide-react"
+import { ArrowRight, Check, CreditCard, Package2, Plus, Receipt, Trash2, User, Wallet, Calculator, CalendarDays } from "lucide-react"
 import { useItemsStore } from "@/store/useItemsStore"
 import { useStoreConfig } from "@/store/useStoreConfig"
 import { formatCurrency } from "@/lib/calculations"
 import { getSaleExpenses, getSaleLineItems } from "@/lib/sales"
-import { PaymentStatus, Sale, SaleExpense, SaleLineItem } from "@/types"
+import { PaymentRecord, PaymentStatus, Sale, SaleExpense, SaleLineItem } from "@/types"
 import { DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -100,7 +100,19 @@ export function SaleForm({
   const [customerName, setCustomerName] = useState(sale?.customerName ?? "")
   const [note, setNote] = useState(sale?.note ?? "")
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(sale?.paymentStatus ?? "paid")
-  const [amountDue, setAmountDue] = useState(sale?.amountDue ? sale.amountDue.toString() : "")
+  const [amountPaid, setAmountPaid] = useState(() => {
+    if (sale?.paymentStatus === "half-paid" && sale?.totalSoldPrice && sale?.amountDue != null) {
+      return (sale.totalSoldPrice - sale.amountDue).toString()
+    }
+    return ""
+  })
+  const [partialPaymentDate, setPartialPaymentDate] = useState(() => {
+    // If editing and there's already a first payment record, use its date
+    if (sale?.paymentRecords?.length) {
+      return sale.paymentRecords[0].date
+    }
+    return format(new Date(), "yyyy-MM-dd")
+  })
 
   // Auto-add new row when last row is filled
   useEffect(() => {
@@ -223,12 +235,31 @@ export function SaleForm({
       note: note.trim(),
       customerName: customerName.trim(),
       paymentStatus,
-      amountDue: paymentStatus === "half-paid" ? (parseFloat(amountDue) || 0) : paymentStatus === "unpaid" ? parsedSoldPrice : 0,
+      amountDue: paymentStatus === "half-paid" ? Math.max(0, parsedSoldPrice - (parseFloat(amountPaid) || 0)) : paymentStatus === "unpaid" ? parsedSoldPrice : 0,
       createdAt: sale?.createdAt ?? Date.parse(`${date}T12:00:00`),
       lineItems,
       expenses: validExpenses,
       extraExpensesTotal,
-      paymentRecords: sale?.paymentRecords ?? [],
+      paymentRecords: (() => {
+        if (paymentStatus === "half-paid") {
+          const paidAmount = parseFloat(amountPaid) || 0
+          if (paidAmount > 0) {
+            const initialRecord: PaymentRecord = {
+              id: sale?.paymentRecords?.[0]?.id ?? crypto.randomUUID(),
+              amount: paidAmount,
+              date: partialPaymentDate,
+              note: "Initial partial payment",
+            }
+            // Keep existing records beyond the first if editing, replace/add the first
+            const existingRecords = sale?.paymentRecords ?? []
+            if (existingRecords.length > 0) {
+              return [initialRecord, ...existingRecords.slice(1)]
+            }
+            return [initialRecord]
+          }
+        }
+        return sale?.paymentRecords ?? []
+      })(),
     })
   }
 
@@ -402,19 +433,44 @@ export function SaleForm({
                   </div>
 
                   {paymentStatus === "half-paid" ? (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
-                      <Label htmlFor="amountDue" className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 block">Amount Due</Label>
-                      <Input
-                        id="amountDue"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        max={parsedSoldPrice}
-                        value={amountDue}
-                        onChange={e => setAmountDue(e.target.value)}
-                        placeholder="0.00"
-                        className="h-9"
-                      />
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1 space-y-3">
+                      <div>
+                        <Label htmlFor="amountPaid" className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 block">Amount Paid</Label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 font-mono text-xs">
+                            {currency}
+                          </div>
+                          <Input
+                            id="amountPaid"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            max={parsedSoldPrice}
+                            value={amountPaid}
+                            onChange={e => setAmountPaid(e.target.value)}
+                            placeholder="0.00"
+                            className="h-9 pl-8"
+                          />
+                        </div>
+                        {amountPaid && parseFloat(amountPaid) > 0 && (
+                          <p className="text-[10px] text-amber-400/70 mt-1">
+                            Remaining due: {formatCurrency(Math.max(0, parsedSoldPrice - (parseFloat(amountPaid) || 0)), currency)}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="partialPaymentDate" className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3" />
+                          Payment Date
+                        </Label>
+                        <Input
+                          id="partialPaymentDate"
+                          type="date"
+                          value={partialPaymentDate}
+                          onChange={e => setPartialPaymentDate(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
                     </div>
                   ) : null}
                 </div>

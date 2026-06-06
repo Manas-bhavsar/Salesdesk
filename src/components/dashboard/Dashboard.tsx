@@ -203,17 +203,17 @@ export function Dashboard({ onOpenSales }: { onOpenSales: () => void }) {
           </div>
 
           <div className="border border-border/40 rounded-2xl overflow-hidden bg-card/80 shadow-sm">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-sm text-left whitespace-nowrap">
+            <div className="overflow-x-auto custom-scrollbar relative">
+              <table className="w-full text-sm text-left">
                 <thead>
-                  <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface/60 border-b border-border/40">
-                    <th className="px-5 py-3.5 font-medium">Date</th>
-                    <th className="px-5 py-3.5 font-medium">Items</th>
-                    <th className="px-5 py-3.5 font-medium text-right">Amount</th>
-                    <th className="px-5 py-3.5 font-medium text-right">Profit</th>
-                    <th className="px-5 py-3.5 font-medium">Status</th>
-                    <th className="px-5 py-3.5 font-medium">Customer</th>
-                    <th className="px-5 py-3.5 font-medium text-center w-20"></th>
+                  <tr className="text-xs text-muted-foreground uppercase tracking-wider bg-surface/60 border-b border-border/40 whitespace-nowrap">
+                    <th className="px-3 lg:px-5 py-3 font-medium">Date</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium">Items</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium text-right">Amount</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium text-right">Profit</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium">Status</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium">Customer</th>
+                    <th className="px-3 lg:px-5 py-3 font-medium text-center w-[72px] sticky right-0 bg-surface/60 z-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -224,24 +224,24 @@ export function Dashboard({ onOpenSales }: { onOpenSales: () => void }) {
                       style={{ animationDelay: `${i * 35}ms` }}
                       onClick={() => handleOpenDetails(sale)}
                     >
-                      <td className="px-5 py-3.5 text-muted-foreground">
+                      <td className="px-3 lg:px-5 py-3 text-muted-foreground whitespace-nowrap">
                         {format(new Date(sale.date + 'T12:00:00'), 'MMM d, yyyy')}
                       </td>
-                      <td className="px-5 py-3.5 font-medium">{getSaleItemsSummary(sale)}</td>
-                      <td className="px-5 py-3.5 text-right font-mono tabular-nums">{formatCurrency(sale.totalSoldPrice, currency)}</td>
-                      <td className="px-5 py-3.5 text-right font-mono tabular-nums">
+                      <td className="px-3 lg:px-5 py-3 font-medium max-w-[160px] truncate" title={getSaleItemsSummary(sale)}>{getSaleItemsSummary(sale)}</td>
+                      <td className="px-3 lg:px-5 py-3 text-right font-mono tabular-nums whitespace-nowrap">{formatCurrency(sale.totalSoldPrice, currency)}</td>
+                      <td className="px-3 lg:px-5 py-3 text-right font-mono tabular-nums whitespace-nowrap">
                         <span className={sale.profit > 0 ? "text-profit" : sale.profit < 0 ? "text-loss" : ""}>
                           {formatCurrency(sale.profit, currency)}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 lg:px-5 py-3 whitespace-nowrap">
                         <PaymentBadge sale={sale} onMarkPaid={handleMarkPaid} />
                       </td>
-                      <td className="px-5 py-3.5 text-muted-foreground max-w-[140px] truncate" title={sale.customerName || ""}>
+                      <td className="px-3 lg:px-5 py-3 text-muted-foreground max-w-[120px] truncate whitespace-nowrap" title={sale.customerName || ""}>
                         {sale.customerName || <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-5 py-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="px-3 lg:px-5 py-3 text-center sticky right-0 bg-card/80 group-hover:bg-surface-hover/50 transition-colors z-10 w-[72px]">
+                        <div className="flex items-center justify-center gap-0.5">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -249,7 +249,7 @@ export function Dashboard({ onOpenSales }: { onOpenSales: () => void }) {
                               e.stopPropagation()
                               handleEdit(sale)
                             }}
-                            className="h-7 w-7 text-muted-foreground/40 hover:text-primary hover:bg-primary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            className="h-7 w-7 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-200"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -260,7 +260,7 @@ export function Dashboard({ onOpenSales }: { onOpenSales: () => void }) {
                               e.stopPropagation()
                               handleDelete(sale.id)
                             }}
-                            className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            className="h-7 w-7 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all duration-200"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
